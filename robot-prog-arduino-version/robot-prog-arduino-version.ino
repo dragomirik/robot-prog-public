@@ -55,7 +55,15 @@ class GlobalParameters {
 
 class RobotState {
   public:
-  RobotState(Vector2 ballPos, Vector2 myPos, Vector2 partnerPos): _ballPos(ballPos), _myPos(myPos), _partnerPos(partnerPos) {}
+  RobotState(
+    Vector2 ballPos,
+    Vector2 myPos,
+    Vector2 partnerPos
+    ):
+    _ballPos(ballPos),
+    _myPos(myPos),
+    _partnerPos(partnerPos)
+    {}
 
   Vector2 ballPos() const {
     return _ballPos;
@@ -84,6 +92,84 @@ class Range {
   const float _from, _to;
 };
 
+//TODO supprimer la mémorisation de sens en la remplaçant par une détection en temps réel grâce à FG
+enum class Direction {forward, backward, stopped};
+
+//TODO n'utilise pas FG (je ne sais pas comment faire), potentiellemnt remplacer _direction par une détection en directe grâce à FG
+class MotorMov {
+  public:
+    MotorMov(
+      uint8_t pinPWM,
+      uint8_t pinCWCCW,
+      uint8_t pinFG,
+      uint8_t pinBRAKE
+    ):_pinPWM(pinPWM),
+      _pinCWCCW(pinCWCCW),
+      _pinFG(pinFG),
+      _pinBRAKE(pinBRAKE)
+    {
+      pinMode(_pinPWM, OUTPUT);
+      pinMode(_pinCWCCW, OUTPUT);
+      pinMode(_pinFG, INPUT);
+      pinMode(_pinBRAKE, OUTPUT);
+      _direction = Direction::stopped;
+    }
+  
+  void stop() {
+    _pwm(0);
+    _brake(HIGH);
+    _direction = Direction::stopped;
+  }
+
+  void move(int value) {
+    if (value == 0) {
+      stop();
+    } else if (value > 0) {
+      //forward
+      if (_direction == Direction::backward) {
+        stop();
+      }
+      _brake(LOW);
+      _cwccw(LOW);
+      _pwm(value);
+      _direction = Direction::forward;
+    } else {
+      //backward
+      if (_direction == Direction::forward) {
+        stop();
+      }
+      _brake(LOW);
+      _cwccw(HIGH);
+      _pwm(-value);
+      _direction = Direction::backward;
+    }
+  }
+
+  private:
+    const uint8_t _pinPWM;
+    const uint8_t _pinCWCCW;
+    const uint8_t _pinFG;
+    const uint8_t _pinBRAKE;
+
+    Direction _direction;//TODO remplacer par détection en direct via fg
+
+    void _pwm(int value) const {
+      analogWrite(_pinPWM, value);
+    }
+
+    void _cwccw(uint8_t value) const {
+      digitalWrite(_pinCWCCW, value);
+    }
+
+    void _fg(uint8_t value) const {
+      digitalWrite(_pinFG, value);
+    }
+
+    void _brake(uint8_t value) const {
+      digitalWrite(_pinBRAKE, value);
+    }
+};
+
 Range reboundGetRange(GlobalParameters globalParameters, RobotState robotState) {
   return reboundGetRange(
         globalParameters.fieldLength() /2,
@@ -95,23 +181,38 @@ Range reboundGetRange(GlobalParameters globalParameters, RobotState robotState) 
 
 Range reboundGetRange(float halfWidth, float halfWidthGoal, float depthFromRobot, float robotCenterDistance) {
   float val = ((2*halfWidth) - robotCenterDistance - halfWidthGoal) / depthFromRobot;
-  Serial.println("before atan : " + String(val, 10));
-  Serial.println("after atan : " + String(atan(val), 10));
-    return Range(
-      atan(((2*halfWidth) - robotCenterDistance - halfWidthGoal) / depthFromRobot)*(PI/180),
-      0
-    );
+  float valAtan = atan(val);
+  // Serial.println("halfWidth L " + String(halfWidth, 10));
+  // Serial.println("robotCenterDistance b " + String(robotCenterDistance, 10));
+  // Serial.println("halfWidthGoal l " + String(halfWidthGoal, 10));
+  // Serial.println("depthFromRobot d " + String(depthFromRobot, 10));
+  // Serial.println("before atan " + String(val, 10));
+  // Serial.println("after atan " + String(valAtan, 10));
+  // Serial.println("force degree " + String(valAtan*180/PI, 10));
+  // Serial.println("force radians " + String(valAtan*PI/180, 10));
+  return Range(
+    atan(((2*halfWidth) - robotCenterDistance - halfWidthGoal) / depthFromRobot)*180/PI,
+    0
+  );
 };
+
+
 
 void setup() {
   // put your setup code here, to run once:
-  GlobalParameters globalParameters = GlobalParameters(5, 10, 0, 1);
+  GlobalParameters globalParameters = GlobalParameters(
+    5,    // fieldLength
+    10,   // fieldDepth
+    0,    // spaceBeforeLineSide
+    2     // goalWidth
+    );
   RobotState robotState = RobotState(
-    Vector2(1, 1),
-    Vector2(2, 2),
-    Vector2(3, 3)
+    Vector2(1, 1),  // ballPos
+    Vector2(2, 2),  // myPos
+    Vector2(3, 3)   // partnerPos
     );
   Serial.begin(9600);
+  Serial.println("test");
   Serial.println(reboundGetRange(globalParameters, robotState).toString());
 }
 
