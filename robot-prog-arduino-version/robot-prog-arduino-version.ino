@@ -170,6 +170,43 @@ class MotorMov {
     }
 };
 
+class Motors {
+  public:
+    Motors(
+      MotorMov frontRight,
+      MotorMov frontLeft,
+      MotorMov backRight,
+      MotorMov backLeft
+    ):
+      _frontRight(frontRight),
+      _frontLeft(frontLeft),
+      _backRight(backRight),
+      _backLeft(backLeft)
+    {}
+
+    frontRight() const {
+      return _frontRight;
+    }
+
+    frontLeft() const {
+      return _frontLeft;
+    }
+
+    backRight() const {
+      return _backRight;
+    }
+
+    backLeft() const {
+      return _backLeft;
+    }
+
+  private:
+    const MotorMov _frontRight;
+    const MotorMov _frontLeft;
+    const MotorMov _backRight;
+    const MotorMov _backLeft;
+}
+
 Range reboundGetRange(GlobalParameters globalParameters, RobotState robotState) {
   return reboundGetRange(
         globalParameters.fieldLength() /2,
