@@ -15,6 +15,14 @@ class Vector2 {
   String toString() const {
     return "(" + String(_x) + ", " + String(_y) + ")";
   }
+
+  bool operator== (const Vector2 &other) {
+    return (_x == other._x && _y == other._y);
+  }
+  bool operator!= (const Vector2 &other) {
+    return (_x != other._x || _y != other._y);
+  }
+
   private:
   const float _x, _y;
 };
@@ -64,6 +72,53 @@ class RobotState {
     _myPos(myPos),
     _partnerPos(partnerPos)
     {}
+  
+  static RobotState fromString(String values) {
+    RobotState::splitLastUpdate(values, 'b');
+    RobotState::splitLastUpdate(values, 'p');
+    RobotState::splitLastUpdate(values, 'm');
+  }
+
+  static Vector2 splitLastUpdate(String values, char charId) {
+    size_t pos = values.lastIndexOf(charId);
+    if (pos != -1) {
+      Vector2 val = RobotState::splitFirstVector(values.substring(pos + 1));
+      if (val != Vector2(-1, -1)) {
+        Serial.println("Result : "+val.toString());
+      }
+    }
+  }
+  static Vector2 splitFirstVector(String part) {
+    String x_num;
+    String y_num;
+    bool add_x = true;
+    for (int i = 0; i < part.length(); i++) {
+      char character = part.charAt(i);
+      if (isDigit(character) || character == '.') {
+        if (add_x) {
+          x_num += character;
+        } else {
+          y_num += character;
+        }
+      } else if (character == ',') {
+        if (add_x) {
+          add_x = false;
+        } else {
+          Serial.println("erreur RobotState splitFirstVector, plusieurs caracteres ','");
+          return Vector2(-1, -1);
+        }
+      } else if (character == 'b' || character == 'm' || character == 'p') {
+        break;
+      } else {
+        Serial.println("erreur RobotState splitFirstVector, caracteres iconnu");
+        return Vector2(-1, -1);
+      }
+    }
+    return Vector2(
+      x_num.toFloat(),
+      y_num.toFloat()
+    );
+  }
 
   Vector2 ballPos() const {
     return _ballPos;
@@ -184,19 +239,19 @@ class Motors {
       _backLeft(backLeft)
     {}
 
-    frontRight() const {
+    MotorMov frontRight() const {
       return _frontRight;
     }
 
-    frontLeft() const {
+    MotorMov frontLeft() const {
       return _frontLeft;
     }
 
-    backRight() const {
+    MotorMov backRight() const {
       return _backRight;
     }
 
-    backLeft() const {
+    MotorMov backLeft() const {
       return _backLeft;
     }
 
@@ -205,7 +260,7 @@ class Motors {
     const MotorMov _frontLeft;
     const MotorMov _backRight;
     const MotorMov _backLeft;
-}
+};
 
 Range reboundGetRange(GlobalParameters globalParameters, RobotState robotState) {
   return reboundGetRange(
@@ -233,10 +288,20 @@ Range reboundGetRange(float halfWidth, float halfWidthGoal, float depthFromRobot
   );
 };
 
+void setup() {
+  Serial.begin(115200);
+  Serial.println("test");
+}
 
+void loop() {
+  RobotState::fromString("b622,355.456m8.6gf4556,4445p11.45,2.6.4");
+}
+
+/*
 
 void setup() {
   // put your setup code here, to run once:
+  /*
   GlobalParameters globalParameters = GlobalParameters(
     5,    // fieldLength
     10,   // fieldDepth
@@ -248,12 +313,30 @@ void setup() {
     Vector2(2, 2),  // myPos
     Vector2(3, 3)   // partnerPos
     );
-  Serial.begin(9600);
+    
+  Serial.begin(115200);
   Serial.println("test");
-  Serial.println(reboundGetRange(globalParameters, robotState).toString());
 }
+
+String receivedMessage;
 
 void loop() {
   // put your main code here, to run repeatedly:
-
+  while (Serial.available() > 0) {
+    char receivedChar = Serial.read();
+    if (receivedChar == '\n') {
+      if (receivedMessage != "Hello World") {
+        Serial.println(receivedMessage);
+      } else {
+        nbr += 1;
+        if (nbr % 1000 == 0) {
+          Serial.println(nbr);
+        }
+      }
+      receivedMessage = "";
+    } else {
+      receivedMessage += receivedChar;
+    }
+  }
 }
+*/
