@@ -2,6 +2,9 @@
 
 //TODO: changer le code en multi-fichiers en utilisant des namespace pour contourner les barrières du .ino ou séparer directement en .hpp et .cpp si cela fonctionne
 
+#define SerialDebug Serial
+#define SerialCam Serial
+
 class Vector2 {
   public:
   Vector2(float x, float y) : _x(x), _y(y) {}
@@ -84,7 +87,7 @@ class RobotState {
     if (pos != -1) {
       Vector2 val = RobotState::splitFirstVector(values.substring(pos + 1));
       if (val != Vector2(-1, -1)) {
-        Serial.println("Result : "+val.toString());
+        SerialDebug.println("Result : "+val.toString());
       }
     }
   }
@@ -104,13 +107,13 @@ class RobotState {
         if (add_x) {
           add_x = false;
         } else {
-          Serial.println("erreur RobotState splitFirstVector, plusieurs caracteres ','");
+          SerialDebug.println("erreur RobotState splitFirstVector, plusieurs caracteres ','");
           return Vector2(-1, -1);
         }
       } else if (character == 'b' || character == 'm' || character == 'p') {
         break;
       } else {
-        Serial.println("erreur RobotState splitFirstVector, caracteres iconnu");
+        SerialDebug.println("erreur RobotState splitFirstVector, caracteres iconnu");
         return Vector2(-1, -1);
       }
     }
@@ -274,14 +277,14 @@ Range reboundGetRange(GlobalParameters globalParameters, RobotState robotState) 
 Range reboundGetRange(float halfWidth, float halfWidthGoal, float depthFromRobot, float robotCenterDistance) {
   float val = ((2*halfWidth) - robotCenterDistance - halfWidthGoal) / depthFromRobot;
   float valAtan = atan(val);
-  // Serial.println("halfWidth L " + String(halfWidth, 10));
-  // Serial.println("robotCenterDistance b " + String(robotCenterDistance, 10));
-  // Serial.println("halfWidthGoal l " + String(halfWidthGoal, 10));
-  // Serial.println("depthFromRobot d " + String(depthFromRobot, 10));
-  // Serial.println("before atan " + String(val, 10));
-  // Serial.println("after atan " + String(valAtan, 10));
-  // Serial.println("force degree " + String(valAtan*180/PI, 10));
-  // Serial.println("force radians " + String(valAtan*PI/180, 10));
+  // SerialDebug.println("halfWidth L " + String(halfWidth, 10));
+  // SerialDebug.println("robotCenterDistance b " + String(robotCenterDistance, 10));
+  // SerialDebug.println("halfWidthGoal l " + String(halfWidthGoal, 10));
+  // SerialDebug.println("depthFromRobot d " + String(depthFromRobot, 10));
+  // SerialDebug.println("before atan " + String(val, 10));
+  // SerialDebug.println("after atan " + String(valAtan, 10));
+  // SerialDebug.println("force degree " + String(valAtan*180/PI, 10));
+  // SerialDebug.println("force radians " + String(valAtan*PI/180, 10));
   return Range(
     atan(((2*halfWidth) - robotCenterDistance - halfWidthGoal) / depthFromRobot)*180/PI,
     0
@@ -289,19 +292,19 @@ Range reboundGetRange(float halfWidth, float halfWidthGoal, float depthFromRobot
 };
 
 void setup() {
-  Serial.begin(115200);
-  Serial.println("test");
+  SerialDebug.begin(115200);
+  SerialCam.begin(115200);
+  SerialDebug.println("test");
 }
 
 void loop() {
   RobotState::fromString("b622,355.456m8.6gf4556,4445p11.45,2.6.4");
 }
 
-/*
+/*/
 
 void setup() {
   // put your setup code here, to run once:
-  /*
   GlobalParameters globalParameters = GlobalParameters(
     5,    // fieldLength
     10,   // fieldDepth
@@ -314,23 +317,24 @@ void setup() {
     Vector2(3, 3)   // partnerPos
     );
     
-  Serial.begin(115200);
-  Serial.println("test");
+  SerialDebug.begin(115200);
+  SerialDebug.println("test");
 }
 
 String receivedMessage;
+unsigned int nbr = 0;
 
 void loop() {
   // put your main code here, to run repeatedly:
-  while (Serial.available() > 0) {
-    char receivedChar = Serial.read();
+  while (SerialCam.available() > 0) {
+    char receivedChar = SerialCam.read();
     if (receivedChar == '\n') {
       if (receivedMessage != "Hello World") {
-        Serial.println(receivedMessage);
+        SerialDebug.println(receivedMessage);
       } else {
         nbr += 1;
         if (nbr % 1000 == 0) {
-          Serial.println(nbr);
+          SerialDebug.println(nbr);
         }
       }
       receivedMessage = "";
@@ -339,4 +343,5 @@ void loop() {
     }
   }
 }
+
 */
