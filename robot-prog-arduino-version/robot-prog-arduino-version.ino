@@ -30,6 +30,48 @@ class Vector2 {
   const float _x, _y;
 };
 
+class Vector2OrError {
+  public:
+  Vector2OrError(String message):
+    _errorMessage(message),
+    _instanceVector2(Vector2(-1, -1)),
+    _hasError(true)
+    {
+      SerialDebug.println("Warning, unraised error :" + message);
+    }
+  
+  Vector2OrError(Vector2 instance):
+    _errorMessage(""),
+    _instanceVector2(instance),
+    _hasError(false)
+    {};
+  
+  bool isError() const {
+    return _hasError;
+  }
+
+  Vector2 getVector2() const {
+    return _instanceVector2;
+  }
+
+  String errorMessage() const {
+    return _errorMessage;
+  }
+
+  Vector2 defaultIfError(Vector2 defaultVal) const {
+    if (isError()) {
+      return defaultVal;
+    } else {
+      return getVector2();
+    }
+  }
+
+  private:
+  const String _errorMessage;
+  const Vector2 _instanceVector2;
+  const bool _hasError;
+};
+
 class GlobalParameters {
   public:
     GlobalParameters(
@@ -76,22 +118,31 @@ class RobotState {
     _partnerPos(partnerPos)
     {}
   
-  static RobotState fromString(String values) {
-    RobotState::splitLastUpdate(values, 'b');
-    RobotState::splitLastUpdate(values, 'p');
-    RobotState::splitLastUpdate(values, 'm');
+  static RobotState fromString(RobotState defaultValues, String values) {
+    Vector2OrError b = RobotState::splitLastUpdate(values, 'b');
+    Vector2OrError m = RobotState::splitLastUpdate(values, 'm');
+    Vector2OrError p = RobotState::splitLastUpdate(values, 'p');
+    return RobotState(
+      b.defaultIfError(defaultValues.ballPos()),
+      m.defaultIfError(defaultValues.myPos()),
+      p.defaultIfError(defaultValues.partnerPos())
+    );
   }
 
-  static Vector2 splitLastUpdate(String values, char charId) {
+  static Vector2OrError splitLastUpdate(String values, char charId) {
     size_t pos = values.lastIndexOf(charId);
-    if (pos != -1) {
-      Vector2 val = RobotState::splitFirstVector(values.substring(pos + 1));
-      if (val != Vector2(-1, -1)) {
-        SerialDebug.println("Result : "+val.toString());
+    if (pos == -1) {
+      return Vector2OrError("error RobotState splitLastUpdate: no '" + String(charId) + "' found in '" + values + "'");
+    } else {
+      Vector2OrError val = RobotState::splitFirstVector(values.substring(pos + 1));
+      if (val.isError()) {
+        return Vector2OrError("error RobotState splitLastUpdate, error in splitFirstVector: " + val.errorMessage());
+      } else {
+        return val;
       }
     }
   }
-  static Vector2 splitFirstVector(String part) {
+  static Vector2OrError splitFirstVector(String part) {
     String x_num;
     String y_num;
     bool add_x = true;
@@ -107,20 +158,18 @@ class RobotState {
         if (add_x) {
           add_x = false;
         } else {
-          SerialDebug.println("erreur RobotState splitFirstVector, plusieurs caracteres ','");
-          return Vector2(-1, -1);
+          return Vector2OrError("error RobotState splitFirstVector, several characters ','");
         }
       } else if (character == 'b' || character == 'm' || character == 'p') {
         break;
       } else {
-        SerialDebug.println("erreur RobotState splitFirstVector, caracteres iconnu");
-        return Vector2(-1, -1);
+        return Vector2OrError("error RobotState splitFirstVector, unknown character '" + String(character) + "'");
       }
     }
-    return Vector2(
+    return Vector2OrError(Vector2(
       x_num.toFloat(),
       y_num.toFloat()
-    );
+    ));
   }
 
   Vector2 ballPos() const {
@@ -131,6 +180,10 @@ class RobotState {
   }
   Vector2 partnerPos() const {
     return _partnerPos;
+  }
+
+  String toString() const {
+    return "RobotState (ballPos: " + _ballPos.toString() + " myPos: " + _myPos.toString() + " partnerPos " + _partnerPos.toString() + ")";
   }
 
   private:
@@ -298,7 +351,11 @@ void setup() {
 }
 
 void loop() {
-  RobotState::fromString("b622,355.456m8.6gf4556,4445p11.45,2.6.4");
+  SerialDebug.println("t");
+  SerialDebug.println(RobotState::fromString(
+    RobotState(Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)),
+    "b622,355.456m8.6gf4556,4445p11.45,2.6.4"
+    ).toString());
 }
 
 /*/
