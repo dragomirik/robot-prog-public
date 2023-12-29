@@ -343,7 +343,7 @@ Range reboundGetRange(float halfWidth, float halfWidthGoal, float depthFromRobot
     0
   );
 };
-
+/*
 void setup() {
   SerialDebug.begin(115200);
   SerialCam.begin(115200);
@@ -354,7 +354,7 @@ void loop() {
   SerialDebug.println("t");
   SerialDebug.println(RobotState::fromString(
     RobotState(Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)),
-    "b622,355.456m8.6gf4556,4445p11.45,2.6.4"
+    "b622,355.456m8.64556,4445p11.45,2.6.4"
     ).toString());
 }
 
@@ -375,30 +375,26 @@ void setup() {
     );
     
   SerialDebug.begin(115200);
+  SerialCam.begin(115200);
   SerialDebug.println("test");
 }
 
 String receivedMessage;
-unsigned int nbr = 0;
+int nbr = 0;
 
 void loop() {
   // put your main code here, to run repeatedly:
   while (SerialCam.available() > 0) {
     char receivedChar = SerialCam.read();
-    if (receivedChar == '\n') {
-      if (receivedMessage != "Hello World") {
-        SerialDebug.println(receivedMessage);
-      } else {
-        nbr += 1;
-        if (nbr % 1000 == 0) {
-          SerialDebug.println(nbr);
-        }
-      }
-      receivedMessage = "";
-    } else {
+      nbr++;
       receivedMessage += receivedChar;
-    }
+      if (nbr > 100) {
+        SerialDebug.println(RobotState::fromString(
+        RobotState(Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)),
+        receivedMessage
+        ).toString());
+        receivedMessage = "";
+        nbr = 0;
+      }
   }
 }
-
-*/
