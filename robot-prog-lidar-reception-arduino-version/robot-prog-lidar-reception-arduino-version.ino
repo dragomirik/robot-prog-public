@@ -42,7 +42,7 @@ void loop() {
       uint16_t speed = _get2BytesLsbMsb(buffer, 0);
       uint16_t startAngle = _get2BytesLsbMsb(buffer, 2);
 
-      LidarPoint data[] = {
+      LidarPoint data[] = {//no for loop possible due to 'const' in LidarPoint class
         LidarPoint(_get2BytesLsbMsb(buffer, 4), buffer[6]),
         LidarPoint(_get2BytesLsbMsb(buffer, 7), buffer[9]),
         LidarPoint(_get2BytesLsbMsb(buffer, 10), buffer[12]),
