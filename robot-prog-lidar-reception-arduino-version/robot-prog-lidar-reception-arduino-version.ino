@@ -11,6 +11,18 @@ class LidarPoint {
   public:
   LidarPoint(uint16_t distance, uint8_t intensity) : _distance(distance), _intensity(intensity) {}
 
+  //getters
+  uint16_t distance() const {return _distance;}
+  uint8_t intensity() const {return _intensity;}
+
+  static uint16_t getStep(uint16_t startAngle, uint16_t endAngle, unsigned int lenMinusOne= 11) {
+    return (endAngle - startAngle) / lenMinusOne;
+  }
+
+  uint16_t getAngle(uint16_t startAngle, uint16_t step, unsigned int indice) {
+    return startAngle + (step * indice);
+  }
+
   private:
   const uint16_t _distance;
   const uint8_t _intensity;
