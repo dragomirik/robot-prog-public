@@ -3,7 +3,7 @@
 //TODO: changer le code en multi-fichiers en utilisant des namespace pour contourner les barrières du .ino ou séparer directement en .hpp et .cpp si cela fonctionne
 
 #define SerialDebug Serial
-#define SerialCam Serial
+#define SerialCam Serial1
 
 class Vector2 {
   public:
@@ -212,17 +212,14 @@ class MotorMov {
     MotorMov(
       uint8_t pinPWM,
       uint8_t pinCWCCW,
-      uint8_t pinFG,
-      uint8_t pinBRAKE
+      uint8_t pinFG
     ):_pinPWM(pinPWM),
       _pinCWCCW(pinCWCCW),
-      _pinFG(pinFG),
-      _pinBRAKE(pinBRAKE)
+      _pinFG(pinFG)
     {
       pinMode(_pinPWM, OUTPUT);
       pinMode(_pinCWCCW, OUTPUT);
       pinMode(_pinFG, INPUT);
-      pinMode(_pinBRAKE, OUTPUT);
       _direction = Direction::stopped;
     }
   
@@ -376,25 +373,14 @@ void setup() {
     
   SerialDebug.begin(115200);
   SerialCam.begin(115200);
-  SerialDebug.println("test");
+  SerialDebug.println("! started !");
 }
 
-String receivedMessage;
-int nbr = 0;
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  while (SerialCam.available() > 0) {
-    char receivedChar = SerialCam.read();
-      nbr++;
-      receivedMessage += receivedChar;
-      if (nbr > 100) {
-        SerialDebug.println(RobotState::fromString(
-        RobotState(Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)),
-        receivedMessage
-        ).toString());
-        receivedMessage = "";
-        nbr = 0;
-      }
-  }
+  RobotState currentState = RobotState::fromString(
+    RobotState(Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)),
+    SerialCam.readStringUntil("", 100));
+  
+  SerialDebug.println(currentState.toString());
 }
