@@ -8,14 +8,19 @@ void setup() {
 }
 
 class LidarPoint {
-  public:
-  LidarPoint(uint16_t distance, uint8_t intensity) : _distance(distance), _intensity(intensity) {}
+public:
+  LidarPoint(uint16_t distance, uint8_t intensity)
+    : _distance(distance), _intensity(intensity) {}
 
   //getters
-  uint16_t distance() const {return _distance;} //distance from the center of the lidar
-  uint8_t intensity() const {return _intensity;}
+  uint16_t distance() const {
+    return _distance;
+  }  //distance from the center of the lidar
+  uint8_t intensity() const {
+    return _intensity;
+  }
 
-  static uint16_t getStep(uint16_t startAngle, uint16_t endAngle, unsigned int lenMinusOne= 11) {
+  static uint16_t getStep(uint16_t startAngle, uint16_t endAngle, unsigned int lenMinusOne = 11) {
     return (endAngle - startAngle) / lenMinusOne;
   }
 
@@ -23,150 +28,16 @@ class LidarPoint {
     return startAngle + (step * indice);
   }
 
-  private:
+private:
   const uint16_t _distance;
   const uint8_t _intensity;
 };
 
-float sumX = 0;
-float sumY = 0;
-unsigned int compteur = 0;
-float maxDistance1 = 0;
-float maxDistance2 = 0;
-float maxDistance3 = 0;
-float maxDistance4 = 0;
-Vector2 robotPos(0, 0);
-
-void loop() {
-  if (!SerialLidar.find("T,")) { // equivalent en char de 84 44 (decimal)
-      SerialDebug.println("error, no header-verlen found in RX for the lidar LD19");
-  } else {
-    // The previous instruction (find) jumped to the beginning of the information
-    // Now the stream is aligned
-    byte buffer[45];
-    size_t nbrBytesReceived = SerialLidar.readBytes(buffer, 45);
-    if (nbrBytesReceived != 45) {
-      SerialDebug.println("error, wrong number of bytes received (" + String(nbrBytesReceived) + ")");
-    } else {
-      uint16_t speed = _get2BytesLsbMsb(buffer, 0);
-      uint16_t startAngle = _get2BytesLsbMsb(buffer, 2);
-
-      LidarPoint data[] = {//no for loop possible due to 'const' in LidarPoint class
-        LidarPoint(_get2BytesLsbMsb(buffer, 4), buffer[6]),
-        LidarPoint(_get2BytesLsbMsb(buffer, 7), buffer[9]),
-        LidarPoint(_get2BytesLsbMsb(buffer, 10), buffer[12]),
-        LidarPoint(_get2BytesLsbMsb(buffer, 13), buffer[15]),
-        LidarPoint(_get2BytesLsbMsb(buffer, 16), buffer[18]),
-        LidarPoint(_get2BytesLsbMsb(buffer, 19), buffer[21]),
-        LidarPoint(_get2BytesLsbMsb(buffer, 22), buffer[24]),
-        LidarPoint(_get2BytesLsbMsb(buffer, 25), buffer[27]),
-        LidarPoint(_get2BytesLsbMsb(buffer, 28), buffer[30]),
-        LidarPoint(_get2BytesLsbMsb(buffer, 31), buffer[33]),
-        LidarPoint(_get2BytesLsbMsb(buffer, 34), buffer[36]),
-        LidarPoint(_get2BytesLsbMsb(buffer, 37), buffer[39])
-	};
-
-      uint16_t endAngle = _get2BytesLsbMsb(buffer, 40);
-      uint16_t timestamp = _get2BytesLsbMsb(buffer, 42);
-      uint8_t crcCheck = buffer[44];
-      
-      SerialDebug.println(timestamp);
-	  
-	  
-	  uint16_t step = LidarPoint::getStep(startAngle, endAngle);
-
-      for(int i = 0; i < 12; i++) {
-        // cos et sin sont inversés car le sens de rotation est indirect et on commence en pi/2
-        float pointX = data[i].distance() * sin(data[i].getAngle(startAngle, step, i));
-        float pointY = data[i].distance() * cos(data[i].getAngle(startAngle, step, i));
-        Vector2 point(pointX, pointY);
-
-        sumX += pointX;
-        sumY += pointY;
-        compteur++;
-
-        float distanceOrigin = getDistance(point, robotPos);
-        Vector2 corners[] = {};
-		
-		if (distanceOrigin > maxDistance1) {
-            maxDistance1 = distanceOrigin;
-            corners[0] = point;
-        } else if (distanceOrigin > maxDistance2) {
-            maxDistance2 = distanceOrigin;
-            corners[1] = point;
-        } else if (distanceOrigin > maxDistance3) {
-            maxDistance3 = distanceOrigin;
-            corners[2] = point;
-        } else if (distanceOrigin > maxDistance4) {
-            maxDistance4 = distanceOrigin;
-            corners[3] = point;
-        }
-        
-        if(data[i].getAngle(startAngle, step, i) <= step) {
-          int sign = 1; // Le signe de la coordonnée en y du goal adverse, soit 1 ou -1
-          float robotPosX = sign * sumX / compteur;
-          float robotPosY = sign * sumY / compteur;
-          Vector2 robotPos(robotPosX, robotPosY);
-
-          sumX = 0;
-          sumY = 0;
-          compteur = 0;
-
-          for (int j = 0; j < 4; j++) {
-            for (int k = 0; k < 4; k++) {
-              float distanceCorner = getDistance(corners[j], corners[k]);
-
-              if(distanceCorner >= 223 && distanceCorner <= 263) { // Voir dimensions terrain
-                float orientation = sign * atan(corners[j].y() - corners[k].y() / corners[j].x() - corners[k].x()); 
-              }
-            }
-          }
-        }
-
-      byte crcArray[46];
-      crcArray[0] = 0x54;
-      crcArray[1] = 0x2C;
-      for (int i = 2; i < 46; i++) {
-        crcArray[i] = buffer[i - 2];
-      }
-      SerialDebug.println("########################################################################################################");
-      SerialDebug.print("        ");
-      printArray(buffer, 45);
-      printArray(crcArray, 46);
-
-
-      uint8_t crcCal = _calCRC8(crcArray, 46);
-      
-      if (crcCal != crcCheck) {
-        SerialDebug.print(crcCal);
-        SerialDebug.print(" != ");
-        SerialDebug.print(crcCheck);
-        SerialDebug.print("\n");
-      } else {
-        SerialDebug.print("\n");
-      }
-    }
-  }
-}
-
-void printArray(byte tableau[], int taille) {
-  for (int i = 0; i < taille; i++) {
-    if (tableau[i] < 10) {
-      Serial.print("  ");
-    } else if (tableau[i] < 100) {
-      Serial.print(" ");
-    }
-    SerialDebug.print(tableau[i]);
-    SerialDebug.print(" ");
-  }
-  SerialDebug.println();
-}
-
-static const uint8_t crcTable[256]
-={
+static const uint8_t crcTable[256] = {
 0x00, 0x4d, 0x9a, 0xd7, 0x79, 0x34, 0xe3,
 0xae, 0xf2, 0xbf, 0x68, 0x25, 0x8b, 0xc6, 0x11, 0x5c, 0xa9, 0xe4, 0x33,
 0x7e, 0xd0, 0x9d, 0x4a, 0x07, 0x5b, 0x16, 0xc1, 0x8c, 0x22, 0x6f, 0xb8,
+0xf5, 0x1f, 0x52, 0x85, 0xc8, 0x66, 0x2b, 0xfc, 0xb1, 0xed, 0xa0, 0x77,
 0x3a, 0x94, 0xd9, 0x0e, 0x43, 0xb6, 0xfb, 0x2c, 0x61, 0xcf, 0x82, 0x55,
 0x18, 0x44, 0x09, 0xde, 0x93, 0x3d, 0x70, 0xa7, 0xea, 0x3e, 0x73, 0xa4,
 0xe9, 0x47, 0x0a, 0xdd, 0x90, 0xcc, 0x81, 0x56, 0x1b, 0xb5, 0xf8, 0x2f,
@@ -187,21 +58,61 @@ static const uint8_t crcTable[256]
 0x5a, 0x06, 0x4b, 0x9c, 0xd1, 0x7f, 0x32, 0xe5, 0xa8
 };
 
-uint8_t _calCRC8(uint8_t *p, uint8_t len){
-  uint8_t crc = 0;
-  uint16_t i;
-
-      for (i = 0; i < len; i++){
-      crc = crcTable[(crc ^ *p++) & 0xff];
-      }
-
-      return crc;
+uint8_t _calCRC8FromBuffer(uint8_t *p, uint8_t lenWithoutCRCCheckValue){
+  uint8_t crc = 0xD8; //pre-calculated header and verlen values (crc = crcTable[(crc ^ 0x54) & 0xff];crc = crcTable[(crc ^ 0x2C) & 0xff];)
+  for (uint16_t i = 0; i < lenWithoutCRCCheckValue; i++){//ignores the last value of the p array (which contains the crc check value)
+    crc = crcTable[(crc ^ *p++) & 0xff];
+  }
+  return crc;
 }
 
 uint16_t _get2BytesLsbMsb(byte buffer[], int index) {
     return (buffer[index + 1] << 8) | buffer[index];
 }
 
-float getDistance(Vector2 point1, Vector2 point2) {
-  return sqrt( sq(point1.x() - point2.x()) + sq(point1.y() - point2.y()) );
+void loop() {
+  if (!SerialLidar.find("T,")) { // equivalent en char de 84 44 (decimal)
+      SerialDebug.println("error, no header-verlen found in RX for the lidar LD19");
+  } else {
+    // The previous instruction (find) jumped to the beginning of the information
+    // Now the stream is aligned
+    byte buffer[45];
+    size_t nbrBytesReceived = SerialLidar.readBytes(buffer, 45);
+    if (nbrBytesReceived != 45) {
+      SerialDebug.println("error, wrong number of bytes received (" + String(nbrBytesReceived) + ")");
+    } else {
+      uint16_t speed = _get2BytesLsbMsb(buffer, 0);
+      uint16_t startAngle = _get2BytesLsbMsb(buffer, 2);
+
+      LidarPoint data[] = { //no for loop possible due to 'const' in LidarPoint class
+        LidarPoint(_get2BytesLsbMsb(buffer, 4), buffer[6]),
+        LidarPoint(_get2BytesLsbMsb(buffer, 7), buffer[9]),
+        LidarPoint(_get2BytesLsbMsb(buffer, 10), buffer[12]),
+        LidarPoint(_get2BytesLsbMsb(buffer, 13), buffer[15]),
+        LidarPoint(_get2BytesLsbMsb(buffer, 16), buffer[18]),
+        LidarPoint(_get2BytesLsbMsb(buffer, 19), buffer[21]),
+        LidarPoint(_get2BytesLsbMsb(buffer, 22), buffer[24]),
+        LidarPoint(_get2BytesLsbMsb(buffer, 25), buffer[27]),
+        LidarPoint(_get2BytesLsbMsb(buffer, 28), buffer[30]),
+        LidarPoint(_get2BytesLsbMsb(buffer, 31), buffer[33]),
+        LidarPoint(_get2BytesLsbMsb(buffer, 34), buffer[36]),
+        LidarPoint(_get2BytesLsbMsb(buffer, 37), buffer[39])
+    };
+
+      uint16_t endAngle = _get2BytesLsbMsb(buffer, 40);
+      uint16_t timestamp = _get2BytesLsbMsb(buffer, 42);
+      uint8_t crcCheck = buffer[44];
+
+      uint8_t crcCal = _calCRC8FromBuffer(buffer, 44);
+
+      if (crcCal != crcCheck) {
+        SerialDebug.print(crcCal);
+        SerialDebug.print(" != ");
+        SerialDebug.print(crcCheck);
+        SerialDebug.print("\n");
+      } else {
+        SerialDebug.println("OK");
+      }
+    }
+  }
 }
