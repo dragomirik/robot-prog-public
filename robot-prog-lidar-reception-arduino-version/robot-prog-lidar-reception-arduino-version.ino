@@ -12,6 +12,7 @@ public:
   LidarPoint(uint16_t distance, uint8_t intensity)
     : _distance(distance), _intensity(intensity) {}
 
+  LidarPoint& operator=(const LidarPoint&) = delete;
   //getters
   uint16_t distance() const {
     return _distance;
@@ -31,6 +32,33 @@ public:
 private:
   const uint16_t _distance;
   const uint8_t _intensity;
+};
+
+class CircularLidarPointsBuffer {
+  private:
+    LidarPoint *buffer;
+    int size;
+    int index;
+
+  public:
+    CircularLidarPointsBuffer(int bufferSize) : size(bufferSize), index(0) {
+      buffer = MyClass[size];
+    }
+
+    ~CircularLidarPointsBuffer() {
+      delete[] buffer;
+    }
+
+    void addValue(const LidarPoint& newValue) {
+      buffer[index] = newValue;
+      index = (index + 1) % size;
+    }
+
+    LidarPoint& operator[](int i) {
+      // Permet d'accéder aux instances de la classe avec l'opérateur []
+      int adjustedIndex = (index + i) % size;
+      return buffer[adjustedIndex];
+    }
 };
 
 static const uint8_t crcTable[256] = {
@@ -70,6 +98,12 @@ uint16_t _get2BytesLsbMsb(byte buffer[], int index) {
     return (buffer[index + 1] << 8) | buffer[index];
 }
 
+float _getDistance(Vector2 point1, Vector2 point2) {
+  return sqrt(sq(point1.x() - point2.x()) + sq(point1.y() - point2.y()));
+}
+
+
+
 void loop() {
   if (!SerialLidar.find("T,")) { // equivalent en char de 84 44 (decimal)
       SerialDebug.println("error, no header-verlen found in RX for the lidar LD19");
@@ -105,13 +139,8 @@ void loop() {
 
       uint8_t crcCal = _calCRC8FromBuffer(buffer, 44);
 
-      if (crcCal != crcCheck) {
-        SerialDebug.print(crcCal);
-        SerialDebug.print(" != ");
-        SerialDebug.print(crcCheck);
-        SerialDebug.print("\n");
-      } else {
-        SerialDebug.println("OK");
+      if (crcCal == crcCheck) {
+
       }
     }
   }
