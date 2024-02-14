@@ -225,7 +225,6 @@ class MotorMov {
   
   void stop() {
     _pwm(0);
-    _brake(HIGH);
     _direction = Direction::stopped;
   }
 
@@ -237,7 +236,6 @@ class MotorMov {
       if (_direction == Direction::backward) {
         stop();
       }
-      _brake(LOW);
       _cwccw(LOW);
       _pwm(value);
       _direction = Direction::forward;
@@ -246,7 +244,6 @@ class MotorMov {
       if (_direction == Direction::forward) {
         stop();
       }
-      _brake(LOW);
       _cwccw(HIGH);
       _pwm(-value);
       _direction = Direction::backward;
@@ -257,7 +254,6 @@ class MotorMov {
     const uint8_t _pinPWM;
     const uint8_t _pinCWCCW;
     const uint8_t _pinFG;
-    const uint8_t _pinBRAKE;
 
     Direction _direction;//TODO remplacer par détection en direct via fg
 
@@ -271,10 +267,6 @@ class MotorMov {
 
     void _fg(uint8_t value) const {
       digitalWrite(_pinFG, value);
-    }
-
-    void _brake(uint8_t value) const {
-      digitalWrite(_pinBRAKE, value);
     }
 };
 
