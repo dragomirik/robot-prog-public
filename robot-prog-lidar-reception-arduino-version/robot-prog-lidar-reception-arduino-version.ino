@@ -217,7 +217,7 @@ void loop() {
       if (crcCal == crcCheck) {
         uint16_t step = LidarPoint::getStep(startAngle, endAngle);
         for (unsigned int i = 0; i < 12; i++) {
-          uint16_t angleRadians = ((data[i].getAngle(startAngle, step, i) / 100) / 360) * PI;
+          uint16_t angleRadians = ((data[i].getAngle(startAngle, step, i) / 100) / 180) * PI;
           // cos and sin are inverted because the direction of rotation is indirect and we start at pi/2
           Vector2 pointRefRobot = Vector2(
             data[i].distance() * sin(angleRadians),
@@ -239,7 +239,7 @@ void loop() {
             }
           }
 
-          if (angleRadians / PI * 360 <= step) {  //a complete turn is performed, (why ?)
+          if (angleRadians / PI * 180 <= step) {  //a complete turn is performed, (why ?)
             //center
             Vector2 centerRefRobot = Vector2(
               sign * sumX / numberSum,
