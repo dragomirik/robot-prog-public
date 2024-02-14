@@ -152,7 +152,10 @@ uint16_t _get2BytesLsbMsb(byte buffer[], int index) {
 }
 
 float _distance(Vector2 point1, Vector2 point2) {
-  return sqrt(sq(point1.x() - point2.x()) + sq(point1.y() - point2.y()));
+  return _distance(point1.x(), point1.y(), point2.x(), point2.y());
+}
+float _distance(float point1X, float point1Y, float point2X, float point2Y) {
+  return sqrt(sq(point1X - point1Y) + sq(point2X - point2Y));
 }
 
 RobotState _robotState = RobotState(
@@ -168,6 +171,7 @@ void setup() {
 }
 
 //Temporary global variables until lidar and motor codes are linked (due to Vector2's immutability)
+const int sign = 1;
 uint16_t sumX = 0;
 uint16_t sumY = 0;
 uint8_t numberSum = 0;
@@ -213,33 +217,55 @@ void loop() {
       if (crcCal == crcCheck) {
         uint16_t step = LidarPoint::getStep(startAngle, endAngle);
         for (unsigned int i = 0; i < 12; i++) {
-          uint16_t angleRadians = ((data[i].getAngle(startAngle, step, i) / 100) / 360) * pi;
+          uint16_t angleRadians = ((data[i].getAngle(startAngle, step, i) / 100) / 360) * PI;
           // cos and sin are inverted because the direction of rotation is indirect and we start at pi/2
-          Vector2 coordRefRobot = Vector2(
+          Vector2 pointRefRobot = Vector2(
             data[i].distance() * sin(angleRadians),
             data[i].distance() * cos(angleRadians));
-            
+
           //average
-          sumX += coordRefRobot.x();
-          sumY += coordRefRobot.y();
+          sumX += pointRefRobot.x();
+          sumY += pointRefRobot.y();
           numberSum++;
 
           //max TODO
-          float distanceOrigin = _distance(Vector2(0, 0), coordRefRobot);
-          for (unsigned int priority = 0; i < 4; i++) { //find the 4 largest values
+          float distanceOrigin = _distance(Vector2(0, 0), pointRefRobot);
+          for (unsigned int priority = 0; i < 4; i++) {  //find the 4 largest values
             if (distanceOrigin > maxDistance[priority]) {
-            maxDistance[priority] = distanceOrigin;
-            cornersX[priority] = coordRefRobot.x();
-            cornersY[priority] = coordRefRobot.y();
-            break;
+              maxDistance[priority] = distanceOrigin;
+              cornersX[priority] = pointRefRobot.x();
+              cornersY[priority] = pointRefRobot.y();
+              break;
             }
           }
 
+          if (angleRadians / PI * 360 <= step) {  //a complete turn is performed, (why ?)
+            //center
+            Vector2 centerRefRobot = Vector2(
+              sign * sumX / numberSum,
+              sign * sumY / numberSum);
 
-          
+            //TODO
+            for (int j = 0; j < 4; j++) {
+              for (int k = 0; k < 4; k++) {
+                float distanceCorner = _distance(cornersX[j], cornersY[j], cornersX[k], cornersY[k]);  //note : distance(A, B) = distance(B, A) !!
+
+                if (distanceCorner >= 2230 && distanceCorner <= 2630) {  // Voir dimensions terrain
+                  float orientation = sign * atan(cornersY[j] - cornersY[k] / cornersX[j] - cornersX[k]);
+                }
+              }
+            }
+
+            //reset
+            sumX = 0;
+            sumY = 0;
+            numberSum = 0;
+            cornersX[4] = {};
+            cornersY[4] = {};
+            maxDistance[4] = {};
+          }
         }
       }
     }
   }
 }
-
