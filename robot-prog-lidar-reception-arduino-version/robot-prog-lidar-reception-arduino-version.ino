@@ -167,10 +167,12 @@ void setup() {
   SerialDebug.println("\ntest");
 }
 
+//Temporary global variables until lidar and motor codes are linked (due to Vector2's immutability)
 uint16_t sumX = 0;
 uint16_t sumY = 0;
 uint8_t numberSum = 0;
-Vector2 corners[4] = {};
+float cornersX[4] = {};
+float cornersY[4] = {};
 float maxDistance[4] = {};
 
 void loop() {
@@ -212,10 +214,11 @@ void loop() {
         uint16_t step = LidarPoint::getStep(startAngle, endAngle);
         for (unsigned int i = 0; i < 12; i++) {
           uint16_t angleRadians = ((data[i].getAngle(startAngle, step, i) / 100) / 360) * pi;
-          // cos et sin sont inversés car le sens de rotation est indirect et on commence en pi/2
+          // cos and sin are inverted because the direction of rotation is indirect and we start at pi/2
           Vector2 coordRefRobot = Vector2(
             data[i].distance() * sin(angleRadians),
             data[i].distance() * cos(angleRadians));
+            
           //average
           sumX += coordRefRobot.x();
           sumY += coordRefRobot.y();
@@ -223,19 +226,16 @@ void loop() {
 
           //max TODO
           float distanceOrigin = _distance(Vector2(0, 0), coordRefRobot);
-          if (distanceOrigin > maxDistance[0]) {
-            maxDistance[0] = distanceOrigin;
-            corners[0] = point;
-          } else if (distanceOrigin > maxDistance[1]) {
-            maxDistance[1] = distanceOrigin;
-            corners[1] = point;
-          } else if (distanceOrigin > maxDistance[2]) {
-            maxDistance[2] = distanceOrigin;
-            corners[2] = point;
-          } else if (distanceOrigin > maxDistance[3]) {
-            maxDistance[3] = distanceOrigin;
-            corners[3] = point;
+          for (unsigned int priority = 0; i < 4; i++) { //find the 4 largest values
+            if (distanceOrigin > maxDistance[priority]) {
+            maxDistance[priority] = distanceOrigin;
+            cornersX[priority] = coordRefRobot.x();
+            cornersY[priority] = coordRefRobot.y();
+            break;
+            }
           }
+
+
           
         }
       }
