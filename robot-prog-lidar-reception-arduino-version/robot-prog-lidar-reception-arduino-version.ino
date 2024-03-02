@@ -3,6 +3,8 @@
 
 ///////// GLOBAL CLASSES
 class Vector2 {  //NORMALE VERSION
+private:
+  const float _x, _y;
 public:
   Vector2(float x, float y)
     : _x(x), _y(y) {}
@@ -23,9 +25,39 @@ public:
   bool operator!=(const Vector2 &other) {
     return (_x != other._x || _y != other._y);
   }
+};
 
+class MutableVector2 {
 private:
-  const float _x, _y;
+  float _x, _y;
+public:
+  MutableVector2(Vector2 vector2)
+    : _x(vector2.x()), _y(vector2.y()) {}
+
+  float x() const {
+    return _x;
+  }
+  float y() const {
+    return _y;
+  }
+  String toString() const {
+    return "(Mutable," + String(_x) + ", " + String(_y) + ")";
+  }
+  Vector2 toVector2() const {
+    return Vector2(x(), y());
+  }
+  bool operator==(const Vector2 &other) {
+    return (_x == other.x() && _y == other.y());
+  }
+  bool operator!=(const Vector2 &other) {
+    return (_x != other.x() || _y != other.y());
+  }
+  bool operator==(const MutableVector2 &other) {
+    return (_x == other._x && _y == other._y);
+  }
+  bool operator!=(const MutableVector2 &other) {
+    return (_x != other._x || _y != other._y);
+  }
 };
 
 class RobotState {  //SIMPLIFIED VERSION
