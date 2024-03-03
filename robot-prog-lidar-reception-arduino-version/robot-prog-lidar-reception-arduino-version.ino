@@ -117,34 +117,95 @@ private:
   const uint8_t _intensity;
 };
 
-/*
+class MutableLidarPoint {
+public:
+  MutableLidarPoint(LidarPoint lidarPoint)
+    : _distance(lidarPoint.distance()), _intensity(lidarPoint.intensity()) {}
+  MutableLidarPoint()
+    : _distance(0), _intensity(0) {}
+  //getters
+  uint16_t distance() const {
+    return _distance;
+  }  //distance from the center of the lidar
+  uint8_t intensity() const {
+    return _intensity;
+  }
+
+  LidarPoint toLidarPoint() const {
+    return LidarPoint(distance(), intensity());
+  }
+
+  static uint16_t getStep(uint16_t startAngle, uint16_t endAngle, unsigned int lenMinusOne = 11) {
+    return (endAngle - startAngle) / lenMinusOne;
+  }
+
+  uint16_t getAngle(uint16_t startAngle, uint16_t step, unsigned int indice) {
+    return startAngle + (step * indice);
+  }
+
+private:
+  uint16_t _distance;
+  uint8_t _intensity;
+};
+
 class CircularLidarPointsBuffer {
 private:
-  LidarPoint *buffer;
-  int size;
-  int index;
+  MutableLidarPoint *_buffer;
+  const size_t _size;
+  size_t _index = 0;
+  bool _firstRound = true;
+  //Data are initialized to 0 by default,
+  //to avoid calculation errors when the first buffer round is not completed,
+  //the logic takes this into account.
 
 public:
   CircularLidarPointsBuffer(int bufferSize)
-    : size(bufferSize), index(0) {
-    buffer = MyClass[size];
+    : _size(bufferSize) {
+    _buffer = new MutableLidarPoint[bufferSize];
   }
 
   ~CircularLidarPointsBuffer() {
-    delete[] buffer;
+    delete[] _buffer;
   }
 
-  void addValue(const LidarPoint &newValue) {
-    buffer[index] = newValue;
-    index = (index + 1) % size;
+  void addValue(const LidarPoint newValue) {
+    _buffer[_index] = MutableLidarPoint(newValue);
+    if (_firstRound) {
+      if (_index == _size - 1) {
+        _firstRound = false;
+      }
+    }
+    _index = (_index + 1) % _size;
   }
 
-  LidarPoint &operator[](int i) {
-    // Permet d'accéder aux instances de la classe avec l'opérateur []
-    int adjustedIndex = (index + i) % size;
-    return buffer[adjustedIndex];
+  bool existValue(size_t indice) const {
+    if (_firstRound) {
+      return indice < _index && indice >= 0;
+    } else {
+      return indice < _size && indice >= 0;
+    }
   }
-};*/
+
+  LidarPoint getValue(size_t indice) const {
+    //Be sure to check that the value exists with `existValue` before requesting it.
+    return _buffer[(indice) % _size].toLidarPoint();
+  }
+
+  size_t sizeFilled() const {
+    if (_firstRound) {
+      return _index;
+    } else {
+      return _size;
+    }
+  }
+
+  void flush() {
+    _index = 0;
+    _firstRound = true;
+    delete[] _buffer;
+    _buffer = new MutableLidarPoint[_size];
+  }
+};
 
 static const uint8_t crcTable[256] = {
   0x00, 0x4d, 0x9a, 0xd7, 0x79, 0x34, 0xe3,
@@ -211,6 +272,8 @@ float cornersX[4] = {};
 float cornersY[4] = {};
 float maxDistance[4] = {};
 
+CircularLidarPointsBuffer circularLidarPointsBuffer(200);
+
 void loop() {
   if (!SerialLidar.find("T,")) {  // equivalent en char de 84 44 (decimal)
     SerialDebug.println("error, no header-verlen found in RX for the lidar LD19");
@@ -247,8 +310,11 @@ void loop() {
       uint8_t crcCal = _calCRC8FromBuffer(buffer, 44);
 
       if (crcCal == crcCheck) {
+        for (size_t i = 0; i < 12; i++) {
+          circularLidarPointsBuffer.addValue(data[i]);
+        }
         uint16_t step = LidarPoint::getStep(startAngle, endAngle);
-        for (unsigned int i = 0; i < 12; i++) {
+        for (unsigned int i = 0; i < 12; i++) {//TODO modifier utilisant circularLidarPointsBuffer
           uint16_t angleRadians = ((data[i].getAngle(startAngle, step, i) / 100) / 180) * PI;
           // cos and sin are inverted because the direction of rotation is indirect and we start at pi/2
           Vector2 pointRefRobot = Vector2(
