@@ -208,10 +208,14 @@ public:
   MotorMov(
     uint8_t pinPWM,
     uint8_t pinCWCCW,
-    uint8_t pinFG)
+    uint8_t pinFG,
+    int angleAxisKicker
+    )
     : _pinPWM(pinPWM),
       _pinCWCCW(pinCWCCW),
-      _pinFG(pinFG) {
+      _pinFG(pinFG),
+      _angleAxisKicker(angleAxisKicker)
+  {
     pinMode(_pinPWM, OUTPUT);
     pinMode(_pinCWCCW, OUTPUT);
     pinMode(_pinFG, INPUT);
@@ -245,10 +249,15 @@ public:
     }
   }
 
+  int angleAxisKicker() {
+    return _angleAxisKicker;
+  }
+
 private:
   const uint8_t _pinPWM;
   const uint8_t _pinCWCCW;
   const uint8_t _pinFG;
+  const int _angleAxisKicker;
 
   Direction _direction;  //TODO remplacer par détection en direct via fg
 
@@ -294,10 +303,10 @@ public:
   }
 
   void moveTo(Vector2 speedRefRobotTurned, float rotation) {
-    float speed1 = -sign(ball_y) * speedRefRobotTurned.x() + rotation;
-    float speed2 = -sign(ball_y) * speedRefRobotTurned.y() + rotation;
-    float speed3 = sign(ball_y) * speedRefRobotTurned.x() + rotation;
-    float speed4 = sign(ball_y) * speedRefRobotTurned.y() + rotation;
+    //float speed1 = -sign(ball_y) * speedRefRobotTurned.x() + rotation;
+    //float speed2 = -sign(ball_y) * speedRefRobotTurned.y() + rotation;
+    //float speed3 = sign(ball_y) * speedRefRobotTurned.x() + rotation;
+    //float speed4 = sign(ball_y) * speedRefRobotTurned.y() + rotation;
     //ball_y ?
 
   }
@@ -365,11 +374,15 @@ void setup() {
   
   //TODO update pins
   //use of pins 1-12 for motors, implicit initialization of communication modes when creating MotorMov instances
+  //MotorMov frontRight
+  //MotorMov frontLeft
+  //MotorMov backRight
+  //MotorMov backLeft
   Motors robotMotors = Motors(
-    MotorMov(1, 2, 3),
-    MotorMov(4, 5, 6),
-    MotorMov(7, 8, 9),
-    MotorMov(10, 11, 12));
+    MotorMov(1, 2, 3, -55),
+    MotorMov(4, 5, 6, 55),
+    MotorMov(7, 8, 9, -125),
+    MotorMov(10, 11, 12, 125));
 
   SerialDebug.begin(115200);
   SerialCam.begin(115200);
