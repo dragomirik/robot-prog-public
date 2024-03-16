@@ -324,15 +324,19 @@ public:
   }
 
   void goTo(Vector2 distances, int celerity) {
+    //If the distance to the destination is less than x, stop the motors
     if (sq(distances.x()) + sq(distances.y()) < sq(3)) {  //TODO faire de 3 un parametre global
       fullStop();
     } else {
+      //If the ordinate is zero, the angle is 90°.
       float angle;
       if (distances.y() == 0) {
         angle = PI / 2;
       } else {
         angle = atan2(abs(distances.x()), abs(distances.y()));
       }
+
+      //Change the angle according to the corner in which the destination point is located
       if (distances.x() <= 0 && distances.y() >= 0) {
         angle *= -1;
       } else if (distances.x() >= 0 && distances.y() <= 0) {
@@ -340,13 +344,18 @@ public:
       } else if (distances.x() <= 0 && distances.y() <= 0) {
         angle -= PI;
       }
+
+      //The speed to be sent to the motors is calculated
       float MFRcelerity = cos(angle - frontRight().angleAxisKicker());
       float MFLcelerity = cos(angle - frontLeft().angleAxisKicker());
       float MBRcelerity = cos(angle - backRight().angleAxisKicker());
       float MBLcelerity = cos(angle - backLeft().angleAxisKicker());
 
+      //The ratio to be used to calculate the speeds to be sent to the motors is calculated, taking into account the desired speed.
       float rapport = (celerity / 255) / (max(abs(MFRcelerity), max(abs(MFLcelerity), max(abs(MBRcelerity), abs(MBLcelerity)))));
 
+      //Speeds are recalculated taking into account the desired speed and
+      //Sends speeds to motors
       frontRight().move(MFRcelerity * rapport * 255);
       frontLeft().move(MFLcelerity * rapport * 255);
       backRight().move(MBRcelerity * rapport * 255);
