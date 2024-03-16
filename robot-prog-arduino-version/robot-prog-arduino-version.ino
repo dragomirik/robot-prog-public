@@ -260,8 +260,8 @@ private:
     digitalWrite(_pinCWCCW, value);
   }
 
-  void _fg(uint8_t value) const {
-    digitalWrite(_pinFG, value);
+  uint8_t _fg() const {
+    return digitalRead(_pinFG);
   }
 };
 
@@ -291,6 +291,15 @@ public:
 
   MotorMov backLeft() const {
     return _backLeft;
+  }
+
+  void moveTo(Vector2 speedRefRobotTurned, float rotation) {
+    float speed1 = -sign(ball_y) * speedRefRobotTurned.x() + rotation;
+    float speed2 = -sign(ball_y) * speedRefRobotTurned.y() + rotation;
+    float speed3 = sign(ball_y) * speedRefRobotTurned.x() + rotation;
+    float speed4 = sign(ball_y) * speedRefRobotTurned.y() + rotation;
+    //ball_y ?
+
   }
 
 private:
@@ -353,12 +362,27 @@ void setup() {
     Vector2(2, 2),  // myPos
     Vector2(3, 3)   // partnerPos
   );
+  
+  //TODO update pins
+  //use of pins 1-12 for motors, implicit initialization of communication modes when creating MotorMov instances
+  Motors robotMotors = Motors(
+    MotorMov(1, 2, 3),
+    MotorMov(4, 5, 6),
+    MotorMov(7, 8, 9),
+    MotorMov(10, 11, 12));
 
   SerialDebug.begin(115200);
   SerialCam.begin(115200);
   SerialDebug.println("! started !");
 }
 
+//faux, concerne image pas terrain
+Vector2 refFromFieldToRobot(Vector2 ObjectRefField, GlobalParameters globalParameters) {
+  return Vector2(
+    ObjectRefField.x() - (globalParameters.fieldDepth() / 2),
+    -ObjectRefField.y() + (globalParameters.fieldLength() / 2)
+  );
+}
 
 void loop() {
   RobotState currentState = RobotState::fromString(
