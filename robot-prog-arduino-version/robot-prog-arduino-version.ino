@@ -214,7 +214,7 @@ public:
     : _pinPWM(pinPWM),
       _pinCWCCW(pinCWCCW),
       _pinFG(pinFG),
-      _angleAxisKicker(angleAxisKicker)
+      _angleAxisKicker(angleAxisKicker*PI/180)
   {
     pinMode(_pinPWM, OUTPUT);
     pinMode(_pinCWCCW, OUTPUT);
@@ -250,14 +250,19 @@ public:
   }
 
   int angleAxisKicker() {
+    //radians
     return _angleAxisKicker;
+  }
+
+  int anglePowerAxisKicker() {
+    return _angleAxisKicker - (PI/2);
   }
 
 private:
   const uint8_t _pinPWM;
   const uint8_t _pinCWCCW;
   const uint8_t _pinFG;
-  const int _angleAxisKicker;
+  const int _angleAxisKicker; //radians
 
   Direction _direction;  //TODO remplacer par détection en direct via fg
 
