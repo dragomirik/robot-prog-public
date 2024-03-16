@@ -27,6 +27,12 @@ public:
     return (_x != other._x || _y != other._y);
   }
 
+  Vector2 distanceRef(Vector2 other) const {
+    return Vector2(
+      x() - other.x(),
+      other.y() - y());
+  }
+
 private:
   const float _x, _y;
 };
@@ -209,13 +215,11 @@ public:
     uint8_t pinPWM,
     uint8_t pinCWCCW,
     uint8_t pinFG,
-    int angleAxisKicker
-    )
+    float angleAxisKicker)
     : _pinPWM(pinPWM),
       _pinCWCCW(pinCWCCW),
       _pinFG(pinFG),
-      _angleAxisKicker(angleAxisKicker*PI/180)
-  {
+      _angleAxisKicker(angleAxisKicker * PI / 180) {
     pinMode(_pinPWM, OUTPUT);
     pinMode(_pinCWCCW, OUTPUT);
     pinMode(_pinFG, INPUT);
@@ -249,20 +253,20 @@ public:
     }
   }
 
-  int angleAxisKicker() {
+  float angleAxisKicker() const {
     //radians
     return _angleAxisKicker;
   }
 
-  int anglePowerAxisKicker() {
-    return _angleAxisKicker - (PI/2);
+  float anglePowerAxisKicker() const {
+    return _angleAxisKicker - (PI / 2);
   }
 
 private:
   const uint8_t _pinPWM;
   const uint8_t _pinCWCCW;
   const uint8_t _pinFG;
-  const int _angleAxisKicker; //radians
+  const float _angleAxisKicker;  //radians
 
   Direction _direction;  //TODO remplacer par détection en direct via fg
 
@@ -280,6 +284,11 @@ private:
 };
 
 class Motors {
+private:
+  const MotorMov _frontRight;
+  const MotorMov _frontLeft;
+  const MotorMov _backRight;
+  const MotorMov _backLeft;
 public:
   Motors(
     MotorMov frontRight,
@@ -307,20 +316,43 @@ public:
     return _backLeft;
   }
 
-  void moveTo(Vector2 speedRefRobotTurned, float rotation) {
-    //float speed1 = -sign(ball_y) * speedRefRobotTurned.x() + rotation;
-    //float speed2 = -sign(ball_y) * speedRefRobotTurned.y() + rotation;
-    //float speed3 = sign(ball_y) * speedRefRobotTurned.x() + rotation;
-    //float speed4 = sign(ball_y) * speedRefRobotTurned.y() + rotation;
-    //ball_y ?
-
+  void fullStop() {
+    frontRight().stop();
+    frontLeft().stop();
+    backRight().stop();
+    backLeft().stop();
   }
 
-private:
-  const MotorMov _frontRight;
-  const MotorMov _frontLeft;
-  const MotorMov _backRight;
-  const MotorMov _backLeft;
+  void goTo(Vector2 distances, int celerity) {
+    if (sq(distances.x()) + sq(distances.y()) < sq(3)) {  //TODO faire de 3 un parametre global
+      fullStop();
+    } else {
+      float angle;
+      if (distances.y() == 0) {
+        angle = PI / 2;
+      } else {
+        angle = atan2(abs(distances.x()), abs(distances.y()));
+      }
+      if (distances.x() <= 0 && distances.y() >= 0) {
+        angle *= -1;
+      } else if (distances.x() >= 0 && distances.y() <= 0) {
+        angle = PI - angle;
+      } else if (distances.x() <= 0 && distances.y() <= 0) {
+        angle -= PI;
+      }
+      float MFRcelerity = cos(angle - frontRight().angleAxisKicker());
+      float MFLcelerity = cos(angle - frontLeft().angleAxisKicker());
+      float MBRcelerity = cos(angle - backRight().angleAxisKicker());
+      float MBLcelerity = cos(angle - backLeft().angleAxisKicker());
+
+      float rapport = (celerity / 255) / (max(abs(MFRcelerity), max(abs(MFLcelerity), max(abs(MBRcelerity), abs(MBLcelerity)))));
+
+      frontRight().move(MFRcelerity * rapport * 255);
+      frontLeft().move(MFLcelerity * rapport * 255);
+      backRight().move(MBRcelerity * rapport * 255);
+      backLeft().move(MBLcelerity * rapport * 255);
+    }
+  }
 };
 
 Range reboundGetRange(GlobalParameters globalParameters, RobotState robotState) {
@@ -346,6 +378,8 @@ Range reboundGetRange(float halfWidth, float halfWidthGoal, float depthFromRobot
     atan(((2 * halfWidth) - robotCenterDistance - halfWidthGoal) / depthFromRobot) * 180 / PI,
     0);
 };
+
+
 /*
 void setup() {
   SerialDebug.begin(115200);
@@ -376,7 +410,7 @@ void setup() {
     Vector2(2, 2),  // myPos
     Vector2(3, 3)   // partnerPos
   );
-  
+
   //TODO update pins
   //use of pins 1-12 for motors, implicit initialization of communication modes when creating MotorMov instances
   //MotorMov frontRight
@@ -398,8 +432,7 @@ void setup() {
 Vector2 refFromFieldToRobot(Vector2 ObjectRefField, GlobalParameters globalParameters) {
   return Vector2(
     ObjectRefField.x() - (globalParameters.fieldDepth() / 2),
-    -ObjectRefField.y() + (globalParameters.fieldLength() / 2)
-  );
+    -ObjectRefField.y() + (globalParameters.fieldLength() / 2));
 }
 
 void loop() {
