@@ -437,13 +437,6 @@ void setup() {
   SerialDebug.println("! started !");
 }
 
-//faux, concerne image pas terrain
-Vector2 refFromFieldToRobot(Vector2 ObjectRefField, GlobalParameters globalParameters) {
-  return Vector2(
-    ObjectRefField.x() - (globalParameters.fieldDepth() / 2),
-    -ObjectRefField.y() + (globalParameters.fieldLength() / 2));
-}
-
 void loop() {
   RobotState currentState = RobotState::fromString(
     RobotState(Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)),
