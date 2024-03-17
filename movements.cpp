@@ -70,14 +70,14 @@ Motors::Motors(
       _backRight(backRight),
       _backLeft(backLeft) {}
 
-void Motors::fullStop() {
+void Motors::fullStop() const {
   frontRight().stop();
   frontLeft().stop();
   backRight().stop();
   backLeft().stop();
 }
 
-void Motors::goTo(Vector2 distances, int celerity) {
+void Motors::goTo(Vector2 distances, int celerity) const {
   // If the distance to the destination is less than x, stop the motors
   if (sq(distances.x()) + sq(distances.y()) < sq(3)) {  // TODO faire de 3 un parametre global
     fullStop();

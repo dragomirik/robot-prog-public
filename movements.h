@@ -54,9 +54,9 @@ class Motors {
   inline MotorMov backRight() const { return _backRight; }
   inline MotorMov backLeft() const { return _backLeft; }
 
-  void fullStop();
+  void fullStop() const;
 
-  void goTo(Vector2 distances, int celerity);
+  void goTo(Vector2 distances, int celerity) const;
 };
 
 #endif
