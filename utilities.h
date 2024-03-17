@@ -14,10 +14,10 @@ class Vector2 {
   inline float y() const { return _y; };
   String toString() const;
 
-  inline bool Vector2::operator==(const Vector2 &other) {
+  inline bool operator==(const Vector2 &other) {
     return (_x == other._x && _y == other._y);
   }
-  inline bool Vector2::operator!=(const Vector2 &other) {
+  inline bool operator!=(const Vector2 &other) {
     return (_x != other._x || _y != other._y);
   }
 
