@@ -1,7 +1,6 @@
 //AVOID MULTI-FILES .ino : They are just concatenated in ALPHABETIC ORDER -> bad idea
 
 //TODO: changer le code en multi-fichiers en utilisant des namespace pour contourner les barrières du .ino ou séparer directement en .hpp et .cpp si cela fonctionne
-#include "Arduino.h"
 #define SerialDebug Serial
 #define SerialCam Serial1
 
