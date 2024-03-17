@@ -1,6 +1,6 @@
 #include "states.h"
 
-GlobalParameters::GlobalParameters(
+FieldProperties::FieldProperties(
     float fieldLength,
     float fieldDepth,
     float spaceBeforeLineSide,

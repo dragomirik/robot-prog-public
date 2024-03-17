@@ -5,9 +5,9 @@
 #include "utilities.h"
 
 
-class GlobalParameters {
+class FieldProperties {
 public:
-  GlobalParameters(
+  FieldProperties(
     float fieldLength,
     float fieldDepth,
     float spaceBeforeLineSide,
