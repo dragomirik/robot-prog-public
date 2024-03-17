@@ -1,5 +1,8 @@
 #include "utilities.h"
 
+
+///////VECTOR2
+
 Vector2::Vector2(float x, float y)
     : _x(x), _y(y) {}
 
@@ -19,3 +22,4 @@ Vector2 Vector2::distanceRef(Vector2 other) const {
       x() - other.x(),
       other.y() - y());
 }
+
