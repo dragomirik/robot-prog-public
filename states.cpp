@@ -18,6 +18,7 @@ RobotState::RobotState(
       _myPos(myPos),
       _partnerPos(partnerPos) {}
 
+//TODO change actual detection system to a char by char one
 RobotState RobotState::fromString(RobotState defaultValues, String values) {
   Vector2OrError b = RobotState::splitLastUpdate(values, 'b');
   Vector2OrError m = RobotState::splitLastUpdate(values, 'm');

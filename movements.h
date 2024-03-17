@@ -9,7 +9,6 @@ enum class Direction { forward,
                        backward,
                        stopped };
 
-// TODO n'utilise pas FG (je ne sais pas comment faire), potentiellemnt remplacer _direction par une détection en directe grâce à FG
 class MotorMov {
  public:
   MotorMov(
@@ -29,7 +28,7 @@ class MotorMov {
   const uint8_t _pinFG;
   const float _angleAxisKicker;  // radians
 
-  Direction _direction;  // TODO remplacer par détection en direct via fg
+  Direction _direction;
 
   void _pwm(int value) const;
   void _cwccw(uint8_t value) const;
