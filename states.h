@@ -1,5 +1,5 @@
-#ifndef MOUVEMENTS_H
-#define MOUVEMENTS_H
+#ifndef STATES_H
+#define STATES_H
 
 #include <Arduino.h>
 #include "utilities.h"
