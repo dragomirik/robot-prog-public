@@ -19,6 +19,8 @@ float Vector2::distance(Vector2 other) const {
   return sqrt(sq(x() - y()) + sq(other.x() - other.y()));
 }
 
+///////VECTOR2ORERROR
+
 Vector2OrError::Vector2OrError(String message)
     : _errorMessage(message),
       _instanceVector2(Vector2(-1, -1)),
@@ -38,6 +40,8 @@ Vector2 Vector2OrError::defaultIfError(Vector2 defaultVal) const {
     return getVector2();
   }
 }
+
+///////MUTABLEVECTOR2
 
 MutableVector2::MutableVector2(Vector2 vector2)
     : _x(vector2.x()), _y(vector2.y()) {}
