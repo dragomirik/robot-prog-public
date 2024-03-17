@@ -16,7 +16,7 @@ Vector2 Vector2::distanceRef(Vector2 other) const {
 }
 
 float Vector2::distance(Vector2 other) const {
-  return sqrt(sq(x() - y()) + sq(other.x() - other.y()));
+  return sqrt(sq(x() - other.x()) + sq(y() - other.y()));
 }
 
 ///////VECTOR2ORERROR
