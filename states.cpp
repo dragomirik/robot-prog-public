@@ -29,7 +29,7 @@ RobotState RobotState::fromString(RobotState defaultValues, String values) {
 }
 
 Vector2OrError RobotState::splitLastUpdate(String values, char charId) {
-  size_t pos = values.lastIndexOf(charId);
+  int pos = values.lastIndexOf(charId);
   if (pos == -1) {
     return Vector2OrError("error RobotState splitLastUpdate: no '" + String(charId) + "' found in '" + values + "'");
   } else {
@@ -46,7 +46,7 @@ Vector2OrError RobotState::splitFirstVector(String part) {
   String x_num;
   String y_num;
   bool add_x = true;
-  for (int i = 0; i < part.length(); i++) {
+  for (unsigned int i = 0; i < part.length(); i++) {
     char character = part.charAt(i);
     if (isDigit(character) || character == '.') {
       if (add_x) {
