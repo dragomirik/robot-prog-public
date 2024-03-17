@@ -15,6 +15,10 @@ Vector2 Vector2::distanceRef(Vector2 other) const {
       other.y() - y());
 }
 
+float Vector2::distance(Vector2 other) const {
+  return sqrt(sq(x() - y()) + sq(other.x() - other.y()));
+}
+
 Vector2OrError::Vector2OrError(String message)
     : _errorMessage(message),
       _instanceVector2(Vector2(-1, -1)),

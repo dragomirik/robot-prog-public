@@ -20,8 +20,9 @@ class Vector2 {
   inline bool Vector2::operator!=(const Vector2 &other) {
     return (_x != other._x || _y != other._y);
   }
-  
+
   Vector2 distanceRef(Vector2 other) const;
+  float distance(Vector2 other) const;
 
  private:
   const float _x, _y;
