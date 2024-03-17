@@ -6,8 +6,8 @@
 class Vector2 {
  public:
   Vector2(float x, float y);
-  float x() const;
-  float y() const;
+  inline float x() const { return _x; };
+  inline float y() const { return _y; };
   String toString() const;
 
   bool operator==(const Vector2 &other);
