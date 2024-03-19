@@ -6,6 +6,10 @@
 
 Vector2 chooseStrategy(FieldProperties fieldProperties, RobotState currentState);
 
+bool ballIsBeforeRobot(FieldProperties fieldProperties, RobotState currentState);
+bool ballIsDetected(FieldProperties fieldProperties, RobotState currentState);
+bool ballIsCaught(FieldProperties fieldProperties, RobotState currentState);
+
 Vector2 goToBallStrategy(FieldProperties fieldProperties, RobotState currentState);
 Vector2 goToBallAvoidingBallStrategy(FieldProperties fieldProperties, RobotState currentState);
 Vector2 accelerateToGoalStrategy(FieldProperties fieldProperties, RobotState currentState);
