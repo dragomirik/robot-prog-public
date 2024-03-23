@@ -1,0 +1,4 @@
+{
+    "board": "teensy:avr:teensy41",
+    "port": "COM12"
+}

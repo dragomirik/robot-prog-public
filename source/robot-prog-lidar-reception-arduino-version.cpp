@@ -244,10 +244,10 @@ uint16_t _get2BytesLsbMsb(byte buffer[], int index) {
   return (buffer[index + 1] << 8) | buffer[index];
 }
 
-float _distance(Vector2 point1, Vector2 point2) {
-  return _distance(point1.x(), point1.y(), point2.x(), point2.y());
+float _cdistance(Vector2 point1, Vector2 point2) {
+  return _cdistance(point1.x(), point1.y(), point2.x(), point2.y());
 }
-float _distance(float point1X, float point1Y, float point2X, float point2Y) {
+float _cdistance(float point1X, float point1Y, float point2X, float point2Y) {
   return sqrt(sq(point1X - point1Y) + sq(point2X - point2Y));
 }
 
@@ -327,7 +327,7 @@ void loop() {
           numberSum++;
 
           //max TODO
-          float distanceOrigin = _distance(Vector2(0, 0), pointRefRobot);
+          float distanceOrigin = _cdistance(Vector2(0, 0), pointRefRobot);
           for (unsigned int priority = 0; i < 4; i++) {  //find the 4 largest values
             if (distanceOrigin > maxDistance[priority]) {
               maxDistance[priority] = distanceOrigin;
@@ -346,7 +346,7 @@ void loop() {
             //TODO
             for (int j = 0; j < 4; j++) {
               for (int k = 0; k < 4; k++) {
-                float distanceCorner = _distance(cornersX[j], cornersY[j], cornersX[k], cornersY[k]);  //note : distance(A, B) = distance(B, A) !!
+                float distanceCorner = _cdistance(cornersX[j], cornersY[j], cornersX[k], cornersY[k]);  //note : distance(A, B) = distance(B, A) !!
 
                 if (distanceCorner >= 2230 && distanceCorner <= 2630) {  // Voir dimensions terrain
                   float orientation = sign * atan(cornersY[j] - cornersY[k] / cornersX[j] - cornersX[k]);
