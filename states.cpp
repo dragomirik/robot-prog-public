@@ -4,11 +4,15 @@ FieldProperties::FieldProperties(
     float fieldLength,
     float fieldDepth,
     float spaceBeforeLineSide,
-    float goalWidth)
+    float goalWidth,
+    float robotRadius,
+    float ballRadius)
     : _fieldLength(fieldLength),
       _fieldDepth(fieldDepth),
       _spaceBeforeLineSide(spaceBeforeLineSide),
-      _goalWidth(goalWidth) {}
+      _goalWidth(goalWidth),
+      _robotRadius(robotRadius),
+      _ballRadius(ballRadius) {}
 
 RobotState::RobotState(
     Vector2 ballPos,

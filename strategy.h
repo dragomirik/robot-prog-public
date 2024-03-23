@@ -2,6 +2,7 @@
 #define STRATEGY_H
 
 #include <Arduino.h>
+#include "utilities.h"
 #include "states.h"
 
 Vector2 chooseStrategy(FieldProperties fP, RobotState cS);

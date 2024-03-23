@@ -1,6 +1,5 @@
 #include "strategy.h"
 
-
 Vector2 chooseStrategy(FieldProperties fP, RobotState cS) {
   if (!ballIsDetected(fP, cS)) {
     return slalowingBackwardsStrategy(fP, cS);
@@ -18,4 +17,11 @@ Vector2 chooseStrategy(FieldProperties fP, RobotState cS) {
       return goToBallAvoidingBallStrategy(fP, cS);
     }
   }
+}
+
+
+bool ballInFrontOfRobot(FieldProperties fP, RobotState cS) {
+  //We consider that this margin percentage is required
+  float longRobot = (fP.robotRadius() + (fP.ballRadius() * 2)) * 1.5;
+  return cS.ballPos().y() - longRobot > cS.myPos().y();
 }
