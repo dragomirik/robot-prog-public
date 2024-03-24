@@ -91,7 +91,8 @@ uint16_t _get2BytesLsbMsb(byte buffer[], int index);
 uint16_t angleStep(uint16_t startAngle, uint16_t endAngle, unsigned int lenMinusOne = 11);
 uint16_t angleFromStep(uint16_t startAngle, uint16_t step, unsigned int indice);
 
-void savePointsLocal(uint16_t startAngle, uint16_t endAngle, LidarPoint *data);
+void ancSavePointsLocal(uint16_t startAngle, uint16_t endAngle, LidarPoint *data);
+void savePointsLocal(CircularLidarPointsBuffer& pointsBuffer);
 
 void readPointsAndAddToBuffer(CircularLidarPointsBuffer& pointsBuffer);
 

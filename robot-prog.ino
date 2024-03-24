@@ -36,6 +36,15 @@ void setup() {
 }*/
 
 void loop() {
-  readPointsAndAddToBuffer(lidarPointsBuffer);
-  SerialDebug.println(lidarPointsBuffer.getValue(0).angle());
+  //BUG: Buffer doesn't work
+  SerialDebug.println("----------");
+  for (unsigned int i=0; i < 360; i++) {
+    lidarPointsBuffer.addValue(LidarPoint(
+    i*10,
+    0,
+    i*100
+  ));
+  }
+  savePointsLocal(lidarPointsBuffer);
+  lidarPointsBuffer.flush();
 }
