@@ -88,8 +88,8 @@ void CircularLidarPointsBuffer::flush() {
 //////FUNCTIONS
 
 uint8_t _calCRC8FromBuffer(uint8_t *p, uint8_t lenWithoutCRCCheckValue) {
-  uint8_t crc = 0xD8;                                       //pre-calculated header and verlen values (crc = crcTable[(crc ^ 0x54) & 0xff];crc = crcTable[(crc ^ 0x2C) & 0xff];)
-  for (uint16_t i = 0; i < lenWithoutCRCCheckValue; i++) {  //ignores the last value of the p array (which contains the crc check value)
+  uint8_t crc = 0xD8;                                       // pre-calculated header and verlen values (crc = crcTable[(crc ^ 0x54) & 0xff];crc = crcTable[(crc ^ 0x2C) & 0xff];)
+  for (uint16_t i = 0; i < lenWithoutCRCCheckValue; i++) {  // ignores the last value of the p array (which contains the crc check value)
     crc = crcTable[(crc ^ *p++) & 0xff];
   }
   return crc;
@@ -97,4 +97,17 @@ uint8_t _calCRC8FromBuffer(uint8_t *p, uint8_t lenWithoutCRCCheckValue) {
 
 uint16_t _get2BytesLsbMsb(byte buffer[], int index) {
   return (buffer[index + 1] << 8) | buffer[index];
+}
+
+void savePointsLocal(uint16_t startAngle, uint16_t endAngle, LidarPoint *data) {
+  // TODO modifier utilisant circularLidarPointsBuffer
+  uint16_t step = LidarPoint::getStep(startAngle, endAngle);
+  for (unsigned int i = 0; i < 12; i++) {
+    uint16_t angle = data[i].getAngle(startAngle, step, i);
+    SerialDebug.print(",(");
+    SerialDebug.print(angle);
+    SerialDebug.print(",");
+    SerialDebug.print(data[i].distance());
+    SerialDebug.print(")");
+  }
 }

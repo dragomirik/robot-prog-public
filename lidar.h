@@ -90,4 +90,6 @@ static const uint8_t crcTable[256] = {
 uint8_t _calCRC8FromBuffer(uint8_t *p, uint8_t lenWithoutCRCCheckValue);
 uint16_t _get2BytesLsbMsb(byte buffer[], int index);
 
+void savePointsLocal(uint16_t startAngle, uint16_t endAngle, LidarPoint *data);
+
 #endif
