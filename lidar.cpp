@@ -6,11 +6,15 @@ LidarPoint::LidarPoint(uint16_t distance, uint8_t intensity)
     : _distance(distance), _intensity(intensity) {}
 
 uint16_t LidarPoint::getStep(uint16_t startAngle, uint16_t endAngle, unsigned int lenMinusOne) {
-  return (endAngle - startAngle) / lenMinusOne;
+  if (startAngle <= endAngle) {
+    return (endAngle - startAngle) / lenMinusOne;
+  } else {
+    return (360 + endAngle - startAngle) / lenMinusOne;
+  }
 }
 
 uint16_t LidarPoint::getAngle(uint16_t startAngle, uint16_t step, unsigned int indice) {
-  return startAngle + (step * indice);
+  return (startAngle + (step * indice)) % 360;
 }
 
 //////MUTABLELIDARPOINT
