@@ -2,8 +2,8 @@
 
 //////LIDARPOINT
 
-LidarPoint::LidarPoint(uint16_t distance, uint8_t intensity)
-    : _distance(distance), _intensity(intensity) {}
+LidarPoint::LidarPoint(uint16_t distance, uint8_t intensity, uint16_t angle)
+    : _distance(distance), _intensity(intensity), _angle(angle) {}
 
 uint16_t LidarPoint::getStep(uint16_t startAngle, uint16_t endAngle, unsigned int lenMinusOne) {
   if (startAngle <= endAngle) {
@@ -20,20 +20,15 @@ uint16_t LidarPoint::getAngle(uint16_t startAngle, uint16_t step, unsigned int i
 //////MUTABLELIDARPOINT
 
 MutableLidarPoint::MutableLidarPoint(LidarPoint lidarPoint)
-    : _distance(lidarPoint.distance()), _intensity(lidarPoint.intensity()) {}
+    : _distance(lidarPoint.distance()),
+      _intensity(lidarPoint.intensity()),
+      _angle(lidarPoint.angle()) {}
+
 MutableLidarPoint::MutableLidarPoint()
-    : _distance(0), _intensity(0) {}
+    : _distance(0), _intensity(0), _angle(0) {}
 
 LidarPoint MutableLidarPoint::toLidarPoint() const {
-  return LidarPoint(distance(), intensity());
-}
-
-uint16_t MutableLidarPoint::getStep(uint16_t startAngle, uint16_t endAngle, unsigned int lenMinusOne) {
-  return (endAngle - startAngle) / lenMinusOne;
-}
-
-uint16_t MutableLidarPoint::getAngle(uint16_t startAngle, uint16_t step, unsigned int indice) {
-  return startAngle + (step * indice);
+  return LidarPoint(distance(), intensity(), angle());
 }
 
 //////CIRCULARLIDARPOINTSBUFFER
