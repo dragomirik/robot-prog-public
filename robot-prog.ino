@@ -5,10 +5,12 @@
 #include "utilities.h"
 
 const FieldProperties fieldProperties = FieldProperties(
-    5,   // fieldLength
-    10,  // fieldDepth
-    0,   // spaceBeforeLineSide
-    2    // goalWidth
+    5,    // fieldLength
+    10,   // fieldDepth
+    0,    // spaceBeforeLineSide
+    2,    // goalWidth
+    0.2,  // robotRadius
+    0.05  // ballRadius
 );
 
 const Motors motors = Motors(
@@ -17,16 +19,23 @@ const Motors motors = Motors(
     MotorMov(7, 8, 9, -125),
     MotorMov(10, 11, 12, 125));
 
+CircularLidarPointsBuffer lidarPointsBuffer = CircularLidarPointsBuffer(200);
+
 void setup() {
   SerialDebug.begin(230400);
   SerialCam.begin(115200);
   SerialLidar.begin(230400);
 }
 
-void loop() {
+/*void loop() {
   RobotState currentState = RobotState::fromString(
     RobotState(Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)),
     SerialCam.readStringUntil("", 100));
 
   SerialDebug.println(currentState.toString());
+}*/
+
+void loop() {
+  readPointsAndAddToBuffer(lidarPointsBuffer);
+  SerialDebug.println(lidarPointsBuffer.getValue(0).angle());
 }

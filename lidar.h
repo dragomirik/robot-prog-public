@@ -15,9 +15,6 @@ class LidarPoint {
   inline uint8_t intensity() const { return _intensity; }
   inline uint8_t angle() const { return _angle; }
 
-  static uint16_t getStep(uint16_t startAngle, uint16_t endAngle, unsigned int lenMinusOne = 11);
-  uint16_t getAngle(uint16_t startAngle, uint16_t step, unsigned int indice);
-
  private:
   const uint16_t _distance;
   const uint8_t _intensity;
@@ -91,6 +88,11 @@ static const uint8_t crcTable[256] = {
 uint8_t _calCRC8FromBuffer(uint8_t *p, uint8_t lenWithoutCRCCheckValue);
 uint16_t _get2BytesLsbMsb(byte buffer[], int index);
 
+uint16_t angleStep(uint16_t startAngle, uint16_t endAngle, unsigned int lenMinusOne = 11);
+uint16_t angleFromStep(uint16_t startAngle, uint16_t step, unsigned int indice);
+
 void savePointsLocal(uint16_t startAngle, uint16_t endAngle, LidarPoint *data);
+
+void readPointsAndAddToBuffer(CircularLidarPointsBuffer& pointsBuffer);
 
 #endif
