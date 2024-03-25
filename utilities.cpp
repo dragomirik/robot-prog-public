@@ -11,12 +11,12 @@ String Vector2::toString() const {
 
 Vector2 Vector2::distanceRef(Vector2 other) const {
   return Vector2(
-      x() - other.x(),
+      other.x() - x(),
       other.y() - y());
 }
 
 float Vector2::distance(Vector2 other) const {
-  return sqrt(sq(x() - other.x()) + sq(y() - other.y()));
+  return sqrt(sq(other.x() - x()) + sq(other.y() - y()));
 }
 
 ///////VECTOR2ORERROR

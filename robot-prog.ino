@@ -4,11 +4,15 @@
 #include "strategy.h"
 #include "utilities.h"
 
+//TODO: test ball detecte
+
 const FieldProperties fieldProperties = FieldProperties(
     5,    // fieldLength
     10,   // fieldDepth
     0,    // spaceBeforeLineSide
     2,    // goalWidth
+    Vector2(0,0),   //myGoalPos
+    Vector2(0,0),   //enemyGoalPos
     0.2,  // robotRadius
     0.05  // ballRadius
 );

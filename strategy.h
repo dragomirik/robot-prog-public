@@ -7,10 +7,13 @@
 
 Vector2 chooseStrategy(FieldProperties fP, RobotState cS);
 
-bool ballInFrontOfRobot(FieldProperties fP, RobotState cS);
-bool ballIsDetected(FieldProperties fP, RobotState cS);
-bool ballIsCaught(FieldProperties fP, RobotState cS);
-bool closeToShoot(FieldProperties fP, RobotState cS);
+bool targetInFrontOfRobot(FieldProperties fP, RobotState cS, Vector2 tL);
+bool targetJustInFrontOfRobot(FieldProperties fP, RobotState cS, Vector2 tL);
+bool targetJustBehindOfRobot(FieldProperties fP, RobotState cS, Vector2 tL);
+bool ballIsDetected(FieldProperties fP, RobotState cS, Vector2 tL);
+bool ballIsCaught(FieldProperties fP, RobotState cS, Vector2 bL);
+bool closeToShoot(FieldProperties fP, RobotState cS, Vector2 gL);
+int getSidePosition(FieldProperties fP, RobotState cS);
 
 Vector2 goToBallStrategy(FieldProperties fP, RobotState cS);
 Vector2 goToBallAvoidingBallStrategy(FieldProperties fP, RobotState cS);
