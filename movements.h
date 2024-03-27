@@ -22,6 +22,8 @@ class MotorMov {
   inline float angleAxisKicker() const { return _angleAxisKicker; }
   float anglePowerAxisKicker() const;
 
+  bool isRight() const { return _angleAxisKicker < 0; }
+
  private:
   const uint8_t _pinPWM;
   const uint8_t _pinCWCCW;

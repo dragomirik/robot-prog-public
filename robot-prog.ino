@@ -18,8 +18,8 @@ const FieldProperties fieldProperties = FieldProperties(
 );
 
 const Motors motors = Motors(
-    MotorMov(3, 2, 0, (-55*PI)/180),
-    MotorMov(25, 24, 0, (55*PI)/180),
+    MotorMov(25, 24, 0, (-55*PI)/180),
+    MotorMov(3, 2, 0, (55*PI)/180),
     MotorMov(5, 4, 0, (-125*PI)/180),
     MotorMov(9, 6, 0, (125*PI)/180));
 
@@ -54,6 +54,6 @@ void loop() {
 }*/
 
 void loop() {
-  //motors.goTo(Vector2(0, 100), 255);
-  motors.frontRight().move(255);
+  motors.goTo(Vector2(100, 100), 255);
+  //motors.frontRight().move(255);
 }

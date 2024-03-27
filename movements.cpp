@@ -30,7 +30,11 @@ void MotorMov::move(int value) {
     if (_direction == Direction::backward) {
       stop();
     }
-    _cwccw(LOW);
+    if (isRight()) {
+      _cwccw(LOW);
+    } else {
+      _cwccw(HIGH);
+    }
     _pwm(value);
     _direction = Direction::forward;
   } else {
@@ -38,7 +42,11 @@ void MotorMov::move(int value) {
     if (_direction == Direction::forward) {
       stop();
     }
-    _cwccw(HIGH);
+    if (isRight()) {
+      _cwccw(HIGH);
+    } else {
+      _cwccw(LOW);
+    }
     _pwm(-value);
     _direction = Direction::backward;
   }
