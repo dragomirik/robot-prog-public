@@ -13,6 +13,7 @@ MotorMov::MotorMov(
   pinMode(_pinPWM, OUTPUT);
   pinMode(_pinCWCCW, OUTPUT);
   //pinMode(_pinFG, INPUT);
+  stop();
   _direction = Direction::stopped;
 }
 
@@ -48,7 +49,7 @@ float MotorMov::anglePowerAxisKicker() const {
 }
 
 void MotorMov::_pwm(int value) const {
-  analogWrite(_pinPWM, value);
+  analogWrite(_pinPWM, 255 - value);
 }
 
 void MotorMov::_cwccw(uint8_t value) const {

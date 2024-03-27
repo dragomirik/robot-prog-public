@@ -27,12 +27,16 @@ bool targetInFrontOfRobot(FieldProperties fP, RobotState cS, Vector2 tL) {
   return tL.y() > longRobot;
 }
 
+bool targetCenterOfRobot(FieldProperties fP, RobotState cS, Vector2 tL) {
+  return abs(tL.x()) <= 5;
+}
+
 bool targetJustInFrontOfRobot(FieldProperties fP, RobotState cS, Vector2 tL) {
-  return targetInFrontOfRobot(fP, cS, tL) && abs(tL.x()) <= 5;
+  return targetInFrontOfRobot(fP, cS, tL) && targetCenterOfRobot(fP, cS, tL);
 }
 
 bool targetJustBehindOfRobot(FieldProperties fP, RobotState cS, Vector2 tL) {
-  return (!targetInFrontOfRobot(fP, cS, tL)) && abs(tL.x()) <= 5;
+  return (!targetInFrontOfRobot(fP, cS, tL)) && targetCenterOfRobot(fP, cS, tL);
 }
 
 /*
