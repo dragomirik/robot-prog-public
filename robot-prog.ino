@@ -38,7 +38,7 @@ void setup() {
 
   SerialDebug.println(currentState.toString());
 }*/
-
+/*
 void loop() {
   //BUG: Buffer doesn't work
   SerialDebug.println("----------");
@@ -51,4 +51,8 @@ void loop() {
   }
   savePointsLocal(lidarPointsBuffer);
   lidarPointsBuffer.flush();
+}*/
+
+void loop() {
+  motors.goTo(Vector2(0, 100), 255);
 }

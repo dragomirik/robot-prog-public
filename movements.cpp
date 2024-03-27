@@ -12,7 +12,7 @@ MotorMov::MotorMov(
       _angleAxisKicker(angleAxisKicker * PI / 180) {
   pinMode(_pinPWM, OUTPUT);
   pinMode(_pinCWCCW, OUTPUT);
-  pinMode(_pinFG, INPUT);
+  //pinMode(_pinFG, INPUT);
   _direction = Direction::stopped;
 }
 

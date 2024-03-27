@@ -28,34 +28,35 @@ bool targetInFrontOfRobot(FieldProperties fP, RobotState cS, Vector2 tL) {
 }
 
 bool targetJustInFrontOfRobot(FieldProperties fP, RobotState cS, Vector2 tL) {
-  return TargetInFrontOfRobot(fP, cS, tL) && abs(tL.x()) <= 5;
+  return targetInFrontOfRobot(fP, cS, tL) && abs(tL.x()) <= 5;
 }
 
 bool targetJustBehindOfRobot(FieldProperties fP, RobotState cS, Vector2 tL) {
-  return (!TargetInFrontOfRobot(fP, cS, tL)) && abs(tL.x()) <= 5;
+  return (!targetInFrontOfRobot(fP, cS, tL)) && abs(tL.x()) <= 5;
 }
 
+/*
 bool ballIsCaught(FieldProperties fP, RobotState cS, Vector2 bL) {
-  return TargetInFrontOfRobot(fP, cS, bL) && tL.distance() <= fP.robotRadius() + fP.ballRadius() + 6;
+  return targetInFrontOfRobot(fP, cS, bL) && bL.distance() <= fP.robotRadius() + fP.ballRadius() + 6;
 }
 
 bool closeToShoot(FieldProperties fP, RobotState cS, Vector2 gL) {
-  return TargetInFrontOfRobot(fP, cS, gL) && gL.distance() <= 30;
-}
+  return targetInFrontOfRobot(fP, cS, gL) && gL.distance() <= 30;
+}*/
 
 int getSidePosition(FieldProperties fP, RobotState cS) {
   if (cS.myPos().x() < 0) {
-    return -1
+    return -1;
   } else {
-    return 1
-  };
+    return 1;
+  }
 }
 
 Vector2 goToBallStrategy(FieldProperties fP, RobotState cS) {
   return Vector2(
       cS.ballPos().x(),
       cS.ballPos().y() - fP.robotRadius()*1.5
-    )
+    );
 }
 
 Vector2 goToBallAvoidingBallStrategy(FieldProperties fP, RobotState cS){
@@ -63,12 +64,12 @@ Vector2 goToBallAvoidingBallStrategy(FieldProperties fP, RobotState cS){
     return Vector2(
       cS.ballPos().x() + fP.robotRadius() + 6,
       cS.ballPos().y() - fP.robotRadius()*1.5
-    )
+    );
   } else {
     return Vector2(
       cS.ballPos().x() - fP.robotRadius() + 6,
       cS.ballPos().y() - fP.robotRadius()*1.5
-    )
+    );
   }
 }
 
@@ -76,5 +77,5 @@ Vector2 accelerateToGoalStrategy(FieldProperties fP, RobotState cS) {
   return Vector2(
       fP.enemyGoalPos().x(),
       fP.enemyGoalPos().y() - 15
-    )
+    );
 }
