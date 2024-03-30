@@ -1,5 +1,5 @@
 {
-    "board": "teensy:avr:teensy41",
-    "port": "COM12",
+    "board": "arduino:avr:uno",
+    "port": "COM22",
     "sketch": "robot-prog.ino"
 }
