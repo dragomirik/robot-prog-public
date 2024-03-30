@@ -39,13 +39,24 @@ void setup() {
   //SerialLidar.begin(230400);
 }
 
-/*void loop() {
+/*
+void loop() {
   RobotState currentState = RobotState::fromString(
     RobotState(Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)),
     SerialCam.readStringUntil("", 100));
 
   SerialDebug.println(currentState.toString());
 }*/
+
+void fun(Radians r) {
+  Serial.println(r);
+}
+
+void loop() {
+  Degree d = Degree(5);
+  fun(d);
+}
+
 /*
 void loop() {
   //BUG: Buffer doesn't work
@@ -61,6 +72,7 @@ void loop() {
   lidarPointsBuffer.flush();
 }*/
 
+/*
 void loop() {
   motors.goTo(Vector2(100, 100), 50);
   delay(2000);
@@ -70,4 +82,4 @@ void loop() {
   delay(2000);
   motors.goTo(Vector2(-100, 100), 50);
   delay(2000);
-}
+}*/

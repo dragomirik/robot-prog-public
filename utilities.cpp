@@ -53,10 +53,11 @@ Vector2 MutableVector2::toVector2() const {
   return Vector2(x(), y());
 }
 
-int sign(float n) {
-  if (n >= 0) {
-    return 1;
-  } else {
-    return -1;
-  }
-}
+
+///////DEGREES AND RADIANS
+
+Degree::Degree(float angle) : _angle(angle) {}
+Degree::Degree(Radians angle) : _angle(angle*180/PI) {}
+
+Radians::Radians(float angle) : _angle(angle) {}
+Radians::Radians(Degree angle) : _angle(angle*PI/180) {}
