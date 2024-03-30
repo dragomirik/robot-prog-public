@@ -44,11 +44,6 @@ class RobotState {
       Vector2 myPos,
       Vector2 partnerPos);
 
-  static RobotState fromString(RobotState defaultValues, String values);
-
-  static Vector2OrError splitLastUpdate(String values, char charId);
-  static Vector2OrError splitFirstVector(String part);
-
   bool updateFromString(char &typeState, String &xReadingState, String &yReadingState, bool &writingInXState, char newChar);
 
   inline Vector2 ballPos() const { return _ballPos.toVector2(); }
