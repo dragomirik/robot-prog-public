@@ -1,5 +1,5 @@
 {
     "board": "arduino:avr:uno",
-    "port": "COM9",
+    "port": "COM22",
     "sketch": "robot-prog.ino"
 }

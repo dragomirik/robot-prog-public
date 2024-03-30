@@ -30,7 +30,7 @@ void MotorMov::move(int value) {
     if (_direction == Direction::backward) {
       stop();
     }
-    if (isRight()) {
+    if (isLeft()) {
       _cwccw(LOW);
     } else {
       _cwccw(HIGH);
@@ -42,7 +42,7 @@ void MotorMov::move(int value) {
     if (_direction == Direction::forward) {
       stop();
     }
-    if (isRight()) {
+    if (isLeft()) {
       _cwccw(HIGH);
     } else {
       _cwccw(LOW);
@@ -86,42 +86,87 @@ void Motors::fullStop() const {
   backLeft().stop();
 }
 
-void Motors::goTo(Vector2 distances, int celerity) const {
+void Motors::goTo(Vector2 vector, int celerity) const {
   // If the distance to the destination is less than x, stop the motors
-  if (sq(distances.x()) + sq(distances.y()) < sq(3)) {  // TODO faire de 3 un parametre global
+  if (sq(vector.x()) + sq(vector.y()) < sq(3)) {  // TODO faire de 3 un parametre global
     fullStop();
   } else {
-    // If the ordinate is zero, the angle is 90°.
+    // If the y value is zero, the angle is 90°.
     float angle;
-    if (distances.y() == 0) {
+    if (vector.y() == 0) {
       angle = PI / 2;
     } else {
-      angle = atan2(abs(distances.x()), abs(distances.y()));
+      angle = atan2(abs(vector.x()), abs(vector.y()));
     }
 
     // Change the angle according to the corner in which the destination point is located
-    if (distances.x() <= 0 && distances.y() >= 0) {
+    if (vector.x() <= 0 && vector.y() >= 0) {
       angle *= -1;
-    } else if (distances.x() >= 0 && distances.y() <= 0) {
+    } else if (vector.x() >= 0 && vector.y() <= 0) {
       angle = PI - angle;
-    } else if (distances.x() <= 0 && distances.y() <= 0) {
+    } else if (vector.x() <= 0 && vector.y() <= 0) {
       angle -= PI;
     }
 
     // The speed to be sent to the motors is calculated
     float MFRcelerity = cos(angle - frontRight().angleAxisKicker());
     float MFLcelerity = cos(angle - frontLeft().angleAxisKicker());
-    float MBRcelerity = cos(angle - backRight().angleAxisKicker());
-    float MBLcelerity = cos(angle - backLeft().angleAxisKicker());
-
+    float MBRcelerity = -cos(angle - backRight().angleAxisKicker());
+    float MBLcelerity = -cos(angle - backLeft().angleAxisKicker());
+    
     // The ratio to be used to calculate the speeds to be sent to the motors is calculated, taking into account the desired speed.
-    float rapport = (celerity / 255) / (max(abs(MFRcelerity), max(abs(MFLcelerity), max(abs(MBRcelerity), abs(MBLcelerity)))));
+    float max = (max(abs(MFRcelerity), max(abs(MFLcelerity), max(abs(MBRcelerity), abs(MBLcelerity)))));
+    // SerialDebug.println("max : " + String(max));
+    // SerialDebug.println("angle : " + String(angle));
+    // SerialDebug.println("frontRight().angleAxisKicker() : " + String(frontRight().angleAxisKicker()));
+    // SerialDebug.println("frontLeft().angleAxisKicker() : " + String(frontLeft().angleAxisKicker()));
+    // SerialDebug.println("backRight().angleAxisKicker() : " + String(backRight().angleAxisKicker()));
+    // SerialDebug.println("backLeft().angleAxisKicker() : " + String(backLeft().angleAxisKicker()));
+
+    float rapport = (celerity / 255.0) / max;
+
+    // SerialDebug.println("rapport : " + String(rapport));
 
     // Speeds are recalculated taking into account the desired speed and
     // Sends speeds to motors
-    frontRight().move(MFRcelerity * rapport * 255);
-    frontLeft().move(MFLcelerity * rapport * 255);
-    backRight().move(MBRcelerity * rapport * 255);
-    backLeft().move(MBLcelerity * rapport * 255);
+    float speedFR = MFRcelerity * rapport * 255;
+    float speedFL = MFLcelerity * rapport * 255;
+    float speedBR = MBRcelerity * rapport * 255;
+    float speedBL = MBLcelerity * rapport * 255;
+
+    // SerialDebug.println(String(MFRcelerity) + ", speed=" + String(speedFR));
+    // SerialDebug.println(String(MFLcelerity) + ", speed=" + String(speedFL));
+    // SerialDebug.println(String(MBRcelerity) + ", speed=" + String(speedBR));
+    // SerialDebug.println(String(MBLcelerity) + ", speed=" + String(speedBL));
+    // SerialDebug.println("************");
+
+// frontLeft().move(50);
+// delay(2000);
+// frontLeft().move(-50);
+// delay(2000);
+// frontLeft().stop();
+
+// frontRight().move(50);
+// delay(2000);
+// frontRight().move(-50);
+// delay(2000);
+// frontRight().stop();
+
+// backRight().move(50);
+// delay(2000);
+// backRight().move(-50);
+// delay(2000);
+// backRight().stop();
+
+// backLeft().move(50);
+// delay(2000);
+// backLeft().move(-50);
+// delay(2000);
+// backLeft().stop();
+
+    frontRight().move(speedFR);
+    frontLeft().move(speedFL);
+    backRight().move(speedBR);
+    backLeft().move(speedBL);
   }
 }
