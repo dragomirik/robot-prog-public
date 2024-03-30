@@ -31,12 +31,22 @@ void setup() {
   //SerialLidar.begin(230400);
 }
 
+/*
 void loop() {
   RobotState currentState = RobotState::fromString(
     RobotState(Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)),
     SerialCam.readStringUntil("", 100));
 
   SerialDebug.println(currentState.toString());
+}*/
+
+void fun(Radians r) {
+  Serial.println(r);
+}
+
+void loop() {
+  Degree d = Degree(5);
+  fun(d);
 }
 
 /*

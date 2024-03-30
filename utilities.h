@@ -72,4 +72,26 @@ class MutableVector2 {
   float _x, _y;
 };
 
+class Radians;
+
+class Degree {
+ private:
+  float _angle;
+
+ public:
+  Degree(float angle);
+  Degree(Radians angle);
+  inline operator float() const { return _angle; }
+};
+
+class Radians {
+ private:
+  float _angle;
+
+ public:
+  Radians(float angle);
+  Radians(Degree angle);
+  inline operator float() const { return _angle; }
+};
+
 #endif
