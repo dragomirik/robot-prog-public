@@ -27,17 +27,18 @@ CircularLidarPointsBuffer lidarPointsBuffer = CircularLidarPointsBuffer(200);
 
 void setup() {
   SerialDebug.begin(230400);
-  SerialCam.begin(115200);
-  SerialLidar.begin(230400);
+  //SerialCam.begin(115200);
+  //SerialLidar.begin(230400);
 }
 
-/*void loop() {
+void loop() {
   RobotState currentState = RobotState::fromString(
     RobotState(Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)),
     SerialCam.readStringUntil("", 100));
 
   SerialDebug.println(currentState.toString());
-}*/
+}
+
 /*
 void loop() {
   //BUG: Buffer doesn't work
@@ -53,7 +54,8 @@ void loop() {
   lidarPointsBuffer.flush();
 }*/
 
+/*
 void loop() {
   motors.goTo(Vector2(100, 100), 255);
   //motors.frontRight().move(255);
-}
+}*/
