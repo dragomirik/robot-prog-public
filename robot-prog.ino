@@ -16,19 +16,27 @@ const FieldProperties fieldProperties = FieldProperties(
     0.2,  // robotRadius
     0.05  // ballRadius
 );
-
+  
 const Motors motors = Motors(
-    MotorMov(25, 24, 0, (-55*PI)/180),
-    MotorMov(3, 2, 0, (55*PI)/180),
-    MotorMov(5, 4, 0, (-125*PI)/180),
-    MotorMov(9, 6, 0, (125*PI)/180));
+    
+    // Arduino UNO
+    MotorMov(11, 12, 0, -55),
+    MotorMov(5, 4, 0, 55),
+    MotorMov(6, 7, 0, -125),
+    MotorMov(9, 8, 0, 125)
 
-CircularLidarPointsBuffer lidarPointsBuffer = CircularLidarPointsBuffer(200);
+    // Teensy
+    /*MotorMov(25, 24, 0, -55),
+    MotorMov(3, 2, 0, 55),
+    MotorMov(5, 4, 0, -125),
+    MotorMov(9, 6, 0, 125)*/);
+
+//CircularLidarPointsBuffer lidarPointsBuffer = CircularLidarPointsBuffer(200);
 
 void setup() {
   SerialDebug.begin(230400);
-  SerialCam.begin(115200);
-  SerialLidar.begin(230400);
+  //SerialCam.begin(115200);
+  //SerialLidar.begin(230400);
 }
 
 /*void loop() {
@@ -54,6 +62,12 @@ void loop() {
 }*/
 
 void loop() {
-  motors.goTo(Vector2(100, 100), 255);
-  //motors.frontRight().move(255);
+  motors.goTo(Vector2(100, 100), 50);
+  delay(2000);
+  motors.goTo(Vector2(-100, -100), 50);
+  delay(2000);
+  motors.goTo(Vector2(100, -100), 50);
+  delay(2000);
+  motors.goTo(Vector2(-100, 100), 50);
+  delay(2000);
 }

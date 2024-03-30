@@ -52,3 +52,11 @@ String MutableVector2::toString() const {
 Vector2 MutableVector2::toVector2() const {
   return Vector2(x(), y());
 }
+
+int sign(float n) {
+  if (n >= 0) {
+    return 1;
+  } else {
+    return -1;
+  }
+}

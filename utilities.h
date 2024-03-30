@@ -4,8 +4,8 @@
 #include <Arduino.h>
 
 #define SerialDebug Serial
-#define SerialCam Serial1
-#define SerialLidar Serial2
+//#define SerialCam Serial1
+//#define SerialLidar Serial2
 
 class Vector2 {
  public:
@@ -72,4 +72,5 @@ class MutableVector2 {
   float _x, _y;
 };
 
+int sign(float n);
 #endif

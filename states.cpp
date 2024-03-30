@@ -57,7 +57,7 @@ Vector2OrError RobotState::splitFirstVector(String part) {
   bool add_x = true;
   for (unsigned int i = 0; i < part.length(); i++) {
     char character = part.charAt(i);
-    if (isDigit(character) || character == '.') {
+    if (isDigit(character) || character == '.' || character == '-') {
       if (add_x) {
         x_num += character;
       } else {
