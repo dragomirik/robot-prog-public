@@ -4,8 +4,8 @@
 #include <Arduino.h>
 
 #define SerialDebug Serial
-#define SerialCam Serial
-#define SerialLidar Serial
+#define SerialCam Serial1
+#define SerialLidar Serial2
 
 class Vector2 {
  public:
