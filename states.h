@@ -45,18 +45,22 @@ class RobotState {
   RobotState(
       Vector2 ballPos,
       Vector2 myPos,
-      Vector2 partnerPos);
+      Vector2 partnerPos,
+      Vector2 myGoalPos,
+      Vector2 enemyGoalPos);
 
   bool updateFromString(char &typeState, String &xReadingState, String &yReadingState, bool &writingInXState, char newChar);
 
   inline Vector2 ballPos() const { return _ballPos.toVector2(); }
   inline Vector2 myPos() const { return _myPos.toVector2(); }
   inline Vector2 partnerPos() const { return _partnerPos.toVector2(); }
+  inline Vector2 myGoalPos() const { return _myGoalPos.toVector2(); }
+  inline Vector2 enemyGoalPos() const { return _enemyGoalPos.toVector2(); }
 
   String toString() const;
 
  private:
-  MutableVector2 _ballPos, _myPos, _partnerPos;
+  MutableVector2 _ballPos, _myPos, _partnerPos, _myGoalPos, _enemyGoalPos;
 };
 
 #endif
