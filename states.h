@@ -9,30 +9,33 @@ class FieldProperties {
 public:
   FieldProperties(
     float fieldLength,
-    float fieldDepth,
+    float fieldWidth,
     float spaceBeforeLineSide,
     float goalWidth,
     Vector2 myGoalPos,
     Vector2 enemyGoalPos,
+    Vector2 noneVect,
     float robotRadius,
     float ballRadius);
 
   inline float fieldLength() const { return _fieldLength; }
-  inline float fieldDepth() const { return _fieldDepth; }
+  inline float fieldWidth() const { return _fieldWidth; }
   inline float spaceBeforeLineSide() const { return _spaceBeforeLineSide; }
   inline float goalWidth() const { return _goalWidth; }
   inline Vector2 myGoalPos() const { return _myGoalPos; }
   inline Vector2 enemyGoalPos() const { return _enemyGoalPos; }
+  inline Vector2 noneVect() const { return _noneVect; }
   inline float robotRadius() const { return _robotRadius; }
   inline float ballRadius() const { return _ballRadius; }
 
 private:
   const float _fieldLength;
-  const float _fieldDepth;
+  const float _fieldWidth;
   const float _spaceBeforeLineSide;
   const float _goalWidth;
   const Vector2 _myGoalPos;
   const Vector2 _enemyGoalPos;
+  const Vector2 _noneVect;
   const float _robotRadius;
   const float _ballRadius;
 };
