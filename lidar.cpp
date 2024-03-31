@@ -54,6 +54,15 @@ CircularLidarPointsBuffer::~CircularLidarPointsBuffer() {
 
 void CircularLidarPointsBuffer::addValue(const LidarPoint newValue) {
   _buffer[_index] = MutableLidarPoint(newValue);
+  size_t indexBefore;
+  if (_index == 0) {
+    indexBefore = sizeFilled();
+  } else {
+    indexBefore = _index - 1;
+  }
+  if (_buffer[indexBefore].angle()/100 <= 365 && newValue.angle()/100 >= 0) {
+    _lastRoundIndex = _index;
+  }
   if (_firstRound) {
     if (_index == _size - 1) {
       _firstRound = false;
@@ -86,6 +95,7 @@ size_t CircularLidarPointsBuffer::sizeFilled() const {
 void CircularLidarPointsBuffer::flush() {
   _index = 0;
   _firstRound = true;
+  _lastRoundIndex = 0;
   delete[] _buffer;
   _buffer = new MutableLidarPoint[_size];
 }

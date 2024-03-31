@@ -52,6 +52,8 @@ class CircularLidarPointsBuffer {
   void flush();
 
   size_t sizeFilled() const;
+  inline size_t lastRoundIndex() const { return _lastRoundIndex; }
+  inline size_t index() const { return _index; }
   int savePointsLocal(int alreadySavedIndex) const;
   String toString() const;
 
@@ -62,6 +64,7 @@ class CircularLidarPointsBuffer {
   const size_t _size;
   size_t _index = 0;
   bool _firstRound = true;
+  size_t _lastRoundIndex = 0;
   // Data are initialized to 0 by default,
   // to avoid calculation errors when the first buffer round is not completed,
   // the logic takes this into account.

@@ -49,6 +49,7 @@ void setup() {
   // SerialLidar.begin(230400);
 }
 
+/*
 void loop() {
   while (SerialCam.available()) {
     //CAM
@@ -65,5 +66,25 @@ void loop() {
     //STRATEGY
     Vector2 target = chooseStrategy(fieldProperties, currentState);
     motors.goTo(target, 255);
+  }
+}
+*/
+
+//Exemple de code pour boucler sur le dernier tour du lidar
+void loop() {
+  //...
+  if (lidarPointsBuffer.lastRoundIndex() <= lidarPointsBuffer.index()) {
+    // a full lap has not been completed
+    for (size_t i = lidarPointsBuffer.lastRoundIndex(); i < lidarPointsBuffer.index(); i++) {
+      //call a function
+    }
+  } else {
+    // an entire lap has been completed
+    for (size_t i = lidarPointsBuffer.lastRoundIndex(); i < lidarPointsBuffer.sizeFilled(); i++) {
+      //call the same function
+    }
+    for (size_t i = 0; i < lidarPointsBuffer.index(); i++) {
+      //call the same function
+    }
   }
 }
