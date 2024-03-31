@@ -4,8 +4,6 @@
 #include "strategy.h"
 #include "utilities.h"
 
-// TODO: test ball detecte
-
 const FieldProperties fieldProperties = FieldProperties(
     5,              // fieldLength
     10,             // fieldDepth
