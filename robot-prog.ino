@@ -32,7 +32,8 @@ const Motors motors = Motors(
     MotorMov(9, 6, 0, 125)*/
 );
 
-CircularLidarPointsBuffer lidarPointsBuffer = CircularLidarPointsBuffer(5);
+size_t savedIndex = 0;
+CircularLidarPointsBuffer lidarPointsBuffer = CircularLidarPointsBuffer(1000);
 
 char typeState = 'x';
 String xReadingState = "";
@@ -62,10 +63,12 @@ void loop() {
 
   SerialDebug.println(currentState.toString());
 }*/
-size_t saved = 0;
+
 void loop() {
-  if (SerialCam.available()) {
-    char newChar = SerialCam.read();
+  SerialDebug.println("ok");
+  /*
+  if (SerialDebug.available()) {
+    char newChar = SerialDebug.read();
     SerialDebug.println("----------");
     lidarPointsBuffer.addValue(LidarPoint(
         String(newChar).toInt(),
@@ -75,10 +78,12 @@ void loop() {
         2,
         0,
         0));
-    saved = lidarPointsBuffer.savePointsLocal(saved);
+
+    savedIndex = lidarPointsBuffer.savePointsLocal(savedIndex);
     SerialDebug.println();
     SerialDebug.println(lidarPointsBuffer.toString());
-  }
+  }*/
+  // lidarPointsBuffer.readPointsAndAddToBuffer();
 }
 
 /*

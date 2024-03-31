@@ -55,6 +55,8 @@ class CircularLidarPointsBuffer {
   int savePointsLocal(int alreadySavedIndex) const;
   String toString() const;
 
+  void readPointsAndAddToBuffer();
+
  private:
   MutableLidarPoint *_buffer;
   const size_t _size;
@@ -99,7 +101,5 @@ uint16_t angleStep(uint16_t startAngle, uint16_t endAngle, unsigned int lenMinus
 uint16_t angleFromStep(uint16_t startAngle, uint16_t step, unsigned int indice);
 
 void ancSavePointsLocal(uint16_t startAngle, uint16_t endAngle, LidarPoint *data);
-
-void readPointsAndAddToBuffer(CircularLidarPointsBuffer& pointsBuffer);
 
 #endif
