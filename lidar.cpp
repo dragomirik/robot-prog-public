@@ -5,6 +5,17 @@
 LidarPoint::LidarPoint(uint16_t distance, uint8_t intensity, uint16_t angle)
     : _distance(distance), _intensity(intensity), _angle(angle) {}
 
+String LidarPoint::toString() const {
+  String result = "(LidarPoint, ";
+  result += _distance;
+  result += ", ";
+  result += _intensity;
+  result += ", ";
+  result += _angle;
+  result += ")";
+  return result;
+}
+
 //////MUTABLELIDARPOINT
 
 MutableLidarPoint::MutableLidarPoint(LidarPoint lidarPoint)
@@ -17,6 +28,17 @@ MutableLidarPoint::MutableLidarPoint()
 
 LidarPoint MutableLidarPoint::toLidarPoint() const {
   return LidarPoint(distance(), intensity(), angle());
+}
+
+String MutableLidarPoint::toString() const {
+  String result = "(MutableLidarPoint, ";
+  result += _distance;
+  result += ", ";
+  result += _intensity;
+  result += ", ";
+  result += _angle;
+  result += ")";
+  return result;
 }
 
 //////CIRCULARLIDARPOINTSBUFFER
@@ -68,6 +90,48 @@ void CircularLidarPointsBuffer::flush() {
   _buffer = new MutableLidarPoint[_size];
 }
 
+void CircularLidarPointsBuffer::_printSpecificValue(size_t valueIndex) const {
+  if (existValue(valueIndex)) {
+    SerialDebug.print(",(");
+    SerialDebug.print(getValue(valueIndex).angle());
+    SerialDebug.print(",");
+    SerialDebug.print(getValue(valueIndex).distance());
+    SerialDebug.print(")");
+  }
+}
+
+int CircularLidarPointsBuffer::savePointsLocal(int alreadySavedIndex) const {
+  if (alreadySavedIndex <= _index) {
+    // a full lap has not been completed or more than one full lap has been completed
+    for (size_t i = alreadySavedIndex; i < _index; i++) {
+      _printSpecificValue(i);
+    }
+  } else {
+    //an entire lap has been completed
+    for (size_t i = alreadySavedIndex; i < sizeFilled(); i++) {
+      _printSpecificValue(i);
+    }
+    for (size_t i = 0; i < _index; i++) {
+      _printSpecificValue(i);
+    }
+  }
+  return _index;
+}
+
+String CircularLidarPointsBuffer::toString() const {
+    String result = "CircularLidarPointsBuffer";
+    result += _size;
+    result += "[";
+    for (size_t i = 0; i < sizeFilled(); ++i) {
+        result += String(_buffer[i].toString());
+        if (i < sizeFilled() - 1) {
+            result += ", ";
+        }
+    }
+    result += "]";
+    return result;
+}
+
 //////FUNCTIONS
 
 uint8_t _calCRC8FromBuffer(uint8_t* p, uint8_t lenWithoutCRCCheckValue) {
@@ -107,20 +171,6 @@ void ancSavePointsLocal(uint16_t startAngle, uint16_t endAngle, LidarPoint* data
   }
 }
 
-void savePointsLocal(CircularLidarPointsBuffer& pointsBuffer) {
-  //BUG: utiliser anc pour l'instant
-  for (unsigned int i = 0; i < pointsBuffer.sizeFilled(); i++) {
-    if (pointsBuffer.existValue(i)) {
-      SerialDebug.print(",(");
-      SerialDebug.print(pointsBuffer.getValue(i).angle());
-      SerialDebug.print(",");
-      SerialDebug.print(pointsBuffer.getValue(i).distance());
-      SerialDebug.print(")");
-    }
-  }
-  //pointsBuffer.flush();
-}
-
 void readPointsAndAddToBuffer(CircularLidarPointsBuffer& pointsBuffer) {
   if (!SerialLidar.find("T,")) {  // equivalent en char de 84 44 (decimal)
     SerialDebug.println("error, no header-verlen found in RX for the lidar LD19");
@@ -154,7 +204,7 @@ void readPointsAndAddToBuffer(CircularLidarPointsBuffer& pointsBuffer) {
       uint8_t crcCheck = buffer[44];
 
       if (_calCRC8FromBuffer(buffer, 44) == crcCheck) {
-        //ancSavePointsLocal(startAngle, endAngle, data);
+        // ancSavePointsLocal(startAngle, endAngle, data);
         uint16_t step = angleStep(startAngle, endAngle);
         for (unsigned int i = 0; i < 12; i++) {
           pointsBuffer.addValue(

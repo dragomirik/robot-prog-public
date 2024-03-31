@@ -15,6 +15,8 @@ class LidarPoint {
   inline uint8_t intensity() const { return _intensity; }
   inline uint8_t angle() const { return _angle; }
 
+  String toString() const;
+
  private:
   const uint16_t _distance;
   const uint8_t _intensity;
@@ -31,6 +33,7 @@ class MutableLidarPoint {
   inline uint8_t angle() const { return _angle; }
 
   LidarPoint toLidarPoint() const;
+  String toString() const;
 
  private:
   uint16_t _distance;
@@ -49,6 +52,8 @@ class CircularLidarPointsBuffer {
   void flush();
 
   size_t sizeFilled() const;
+  int savePointsLocal(int alreadySavedIndex) const;
+  String toString() const;
 
  private:
   MutableLidarPoint *_buffer;
@@ -58,6 +63,8 @@ class CircularLidarPointsBuffer {
   // Data are initialized to 0 by default,
   // to avoid calculation errors when the first buffer round is not completed,
   // the logic takes this into account.
+
+  void _printSpecificValue(size_t valueIndex) const;
 };
 
 static const uint8_t crcTable[256] = {
@@ -92,7 +99,6 @@ uint16_t angleStep(uint16_t startAngle, uint16_t endAngle, unsigned int lenMinus
 uint16_t angleFromStep(uint16_t startAngle, uint16_t step, unsigned int indice);
 
 void ancSavePointsLocal(uint16_t startAngle, uint16_t endAngle, LidarPoint *data);
-void savePointsLocal(CircularLidarPointsBuffer& pointsBuffer);
 
 void readPointsAndAddToBuffer(CircularLidarPointsBuffer& pointsBuffer);
 

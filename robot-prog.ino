@@ -62,7 +62,7 @@ void loop() {
 
   SerialDebug.println(currentState.toString());
 }*/
-
+size_t saved = 0;
 void loop() {
   if (SerialCam.available()) {
     char newChar = SerialCam.read();
@@ -71,10 +71,13 @@ void loop() {
         String(newChar).toInt(),
         0,
         0));
-    savePointsLocal(lidarPointsBuffer);
+    lidarPointsBuffer.addValue(LidarPoint(
+        2,
+        0,
+        0));
+    saved = lidarPointsBuffer.savePointsLocal(saved);
     SerialDebug.println();
-    SerialDebug.println(lidarPointsBuffer.sizeFilled());
-    //lidarPointsBuffer.flush();
+    SerialDebug.println(lidarPointsBuffer.toString());
   }
 }
 
