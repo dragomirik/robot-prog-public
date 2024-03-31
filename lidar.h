@@ -13,7 +13,7 @@ class LidarPoint {
 
   inline uint16_t distance() const { return _distance; }  // distance from the center of the lidar
   inline uint8_t intensity() const { return _intensity; }
-  inline uint8_t angle() const { return _angle; }
+  inline uint16_t angle() const { return _angle; }
 
   String toString() const;
 
@@ -30,7 +30,7 @@ class MutableLidarPoint {
 
   inline uint16_t distance() const { return _distance; }  // distance from the center of the lidar
   inline uint8_t intensity() const { return _intensity; }
-  inline uint8_t angle() const { return _angle; }
+  inline uint16_t angle() const { return _angle; }
 
   LidarPoint toLidarPoint() const;
   String toString() const;
