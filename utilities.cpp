@@ -19,6 +19,10 @@ float Vector2::distance(Vector2 other) const {
   return sqrt(sq(other.x() - x()) + sq(other.y() - y()));
 }
 
+float Vector2::norm() const {
+  return sqrt(sq(x()) + sq(y()));
+}
+
 ///////MUTABLEVECTOR2
 
 MutableVector2::MutableVector2(Vector2 vector2)
