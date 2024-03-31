@@ -5,14 +5,14 @@ MotorMov::MotorMov(
     uint8_t pinPWM,
     uint8_t pinCWCCW,
     uint8_t pinFG,
-    float angleAxisKicker)
+    Radians angleAxisKicker)
     : _pinPWM(pinPWM),
       _pinCWCCW(pinCWCCW),
       _pinFG(pinFG),
-      _angleAxisKicker(angleAxisKicker * PI / 180) {
+      _angleAxisKicker(angleAxisKicker) {
   pinMode(_pinPWM, OUTPUT);
   pinMode(_pinCWCCW, OUTPUT);
-  //pinMode(_pinFG, INPUT);
+  // pinMode(_pinFG, INPUT);
   stop();
   _direction = Direction::stopped;
 }
@@ -113,17 +113,10 @@ void Motors::goTo(Vector2 vector, int celerity) const {
     float MFLcelerity = cos(angle - frontLeft().angleAxisKicker());
     float MBRcelerity = -cos(angle - backRight().angleAxisKicker());
     float MBLcelerity = -cos(angle - backLeft().angleAxisKicker());
-    
-    // The ratio to be used to calculate the speeds to be sent to the motors is calculated, taking into account the desired speed.
-    float max = (max(abs(MFRcelerity), max(abs(MFLcelerity), max(abs(MBRcelerity), abs(MBLcelerity)))));
-    // SerialDebug.println("max : " + String(max));
-    // SerialDebug.println("angle : " + String(angle));
-    // SerialDebug.println("frontRight().angleAxisKicker() : " + String(frontRight().angleAxisKicker()));
-    // SerialDebug.println("frontLeft().angleAxisKicker() : " + String(frontLeft().angleAxisKicker()));
-    // SerialDebug.println("backRight().angleAxisKicker() : " + String(backRight().angleAxisKicker()));
-    // SerialDebug.println("backLeft().angleAxisKicker() : " + String(backLeft().angleAxisKicker()));
 
-    float rapport = (celerity / 255.0) / max;
+    // The ratio to be used to calculate the speeds to be sent to the motors is calculated, taking into account the desired speed.
+    float maximum = (max(abs(MFRcelerity), max(abs(MFLcelerity), max(abs(MBRcelerity), abs(MBLcelerity)))));
+    float rapport = (celerity / 255.0) / maximum;
 
     // SerialDebug.println("rapport : " + String(rapport));
 
@@ -133,36 +126,6 @@ void Motors::goTo(Vector2 vector, int celerity) const {
     float speedFL = MFLcelerity * rapport * 255;
     float speedBR = MBRcelerity * rapport * 255;
     float speedBL = MBLcelerity * rapport * 255;
-
-    // SerialDebug.println(String(MFRcelerity) + ", speed=" + String(speedFR));
-    // SerialDebug.println(String(MFLcelerity) + ", speed=" + String(speedFL));
-    // SerialDebug.println(String(MBRcelerity) + ", speed=" + String(speedBR));
-    // SerialDebug.println(String(MBLcelerity) + ", speed=" + String(speedBL));
-    // SerialDebug.println("************");
-
-// frontLeft().move(50);
-// delay(2000);
-// frontLeft().move(-50);
-// delay(2000);
-// frontLeft().stop();
-
-// frontRight().move(50);
-// delay(2000);
-// frontRight().move(-50);
-// delay(2000);
-// frontRight().stop();
-
-// backRight().move(50);
-// delay(2000);
-// backRight().move(-50);
-// delay(2000);
-// backRight().stop();
-
-// backLeft().move(50);
-// delay(2000);
-// backLeft().move(-50);
-// delay(2000);
-// backLeft().stop();
 
     frontRight().move(speedFR);
     frontLeft().move(speedFL);

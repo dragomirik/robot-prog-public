@@ -2,6 +2,7 @@
 #define MOUVEMENTS_H
 
 #include <Arduino.h>
+
 #include "utilities.h"
 
 // TODO supprimer la mémorisation de sens en la remplaçant par une détection en temps réel grâce à FG
@@ -15,11 +16,10 @@ class MotorMov {
       uint8_t pinPWM,
       uint8_t pinCWCCW,
       uint8_t pinFG,
-      float angleAxisKicker);
+      Radians angleAxisKicker);
   void stop();
   void move(int value);
-  // radians
-  inline float angleAxisKicker() const { return _angleAxisKicker; }
+  inline Radians angleAxisKicker() const { return _angleAxisKicker; }
   float anglePowerAxisKicker() const;
 
   bool isLeft() const { return _angleAxisKicker < 0; }
@@ -28,7 +28,7 @@ class MotorMov {
   const uint8_t _pinPWM;
   const uint8_t _pinCWCCW;
   const uint8_t _pinFG;
-  const float _angleAxisKicker;  // radians
+  const Radians _angleAxisKicker;  // radians
 
   Direction _direction;
 

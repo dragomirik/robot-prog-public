@@ -23,28 +23,6 @@ float Vector2::norm() const {
   return sqrt(sq(x()) + sq(y()));
 }
 
-///////VECTOR2ORERROR
-
-Vector2OrError::Vector2OrError(String message)
-    : _errorMessage(message),
-      _instanceVector2(Vector2(-1, -1)),
-      _hasError(true) {
-  SerialDebug.println("Warning, unraised error :" + message);
-}
-
-Vector2OrError::Vector2OrError(Vector2 instance)
-    : _errorMessage(""),
-      _instanceVector2(instance),
-      _hasError(false){};
-
-Vector2 Vector2OrError::defaultIfError(Vector2 defaultVal) const {
-  if (isError()) {
-    return defaultVal;
-  } else {
-    return getVector2();
-  }
-}
-
 ///////MUTABLEVECTOR2
 
 MutableVector2::MutableVector2(Vector2 vector2)
@@ -57,11 +35,10 @@ Vector2 MutableVector2::toVector2() const {
   return Vector2(x(), y());
 }
 
-
 ///////DEGREES AND RADIANS
 
 Degree::Degree(float angle) : _angle(angle) {}
-Degree::Degree(Radians angle) : _angle(angle*180/PI) {}
+Degree::Degree(Radians angle) : _angle(angle * 180 / PI) {}
 
 Radians::Radians(float angle) : _angle(angle) {}
-Radians::Radians(Degree angle) : _angle(angle*PI/180) {}
+Radians::Radians(Degree angle) : _angle(angle * PI / 180) {}

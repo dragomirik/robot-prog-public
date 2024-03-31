@@ -29,23 +29,6 @@ class Vector2 {
   const float _x, _y;
 };
 
-class Vector2OrError {
- public:
-  Vector2OrError(String message);
-  Vector2OrError(Vector2 instance);
-
-  inline bool isError() const { return _hasError; }
-  inline Vector2 getVector2() const { return _instanceVector2; }
-  inline String errorMessage() const { return _errorMessage; }
-
-  Vector2 defaultIfError(Vector2 defaultVal) const;
-
- private:
-  const String _errorMessage;
-  const Vector2 _instanceVector2;
-  const bool _hasError;
-};
-
 class MutableVector2 {
  public:
   MutableVector2(Vector2 vector2);
