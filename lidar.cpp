@@ -118,7 +118,7 @@ void savePointsLocal(CircularLidarPointsBuffer& pointsBuffer) {
       SerialDebug.print(")");
     }
   }
-  pointsBuffer.flush();
+  //pointsBuffer.flush();
 }
 
 void readPointsAndAddToBuffer(CircularLidarPointsBuffer& pointsBuffer) {

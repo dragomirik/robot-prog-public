@@ -16,9 +16,9 @@ const FieldProperties fieldProperties = FieldProperties(
     0.2,            // robotRadius
     0.05            // ballRadius
 );
-  
+
 const Motors motors = Motors(
-    
+
     // Arduino UNO
     MotorMov(11, 12, 0, -55),
     MotorMov(5, 4, 0, 55),
@@ -29,9 +29,10 @@ const Motors motors = Motors(
     /*MotorMov(25, 24, 0, -55),
     MotorMov(3, 2, 0, 55),
     MotorMov(5, 4, 0, -125),
-    MotorMov(9, 6, 0, 125)*/);
+    MotorMov(9, 6, 0, 125)*/
+);
 
-CircularLidarPointsBuffer lidarPointsBuffer = CircularLidarPointsBuffer(200);
+CircularLidarPointsBuffer lidarPointsBuffer = CircularLidarPointsBuffer(5);
 
 char typeState = 'x';
 String xReadingState = "";
@@ -62,19 +63,19 @@ void loop() {
   SerialDebug.println(currentState.toString());
 }*/
 
-
 void loop() {
-  //BUG: Buffer doesn't work
-  SerialDebug.println("----------");
-  for (unsigned int i=0; i < 360; i++) {
+  if (SerialCam.available()) {
+    char newChar = SerialCam.read();
+    SerialDebug.println("----------");
     lidarPointsBuffer.addValue(LidarPoint(
-    i*10,
-    0,
-    i*100
-  ));
+        String(newChar).toInt(),
+        0,
+        0));
+    savePointsLocal(lidarPointsBuffer);
+    SerialDebug.println();
+    SerialDebug.println(lidarPointsBuffer.sizeFilled());
+    //lidarPointsBuffer.flush();
   }
-  savePointsLocal(lidarPointsBuffer);
-  lidarPointsBuffer.flush();
 }
 
 /*
