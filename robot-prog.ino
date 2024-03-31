@@ -49,34 +49,21 @@ void setup() {
   // SerialLidar.begin(230400);
 }
 
-/*
 void loop() {
   while (SerialCam.available()) {
+    //CAM
     char newChar = SerialCam.read();
     SerialDebug.println('"' + String(newChar) + '"');
     if (currentState.updateFromString(typeState, xReadingState, yReadingState, writingInXState, newChar)) {
       break;
     }
+    //LIDAR
+    lidarPointsBuffer.readPointsAndAddToBuffer();
+
+    //TODO detection angles
+
+    //STRATEGY
+    Vector2 target = chooseStrategy(fieldProperties, currentState);
+    motors.goTo(target, 255);
   }
-
-  SerialDebug.println(currentState.toString());
-}*/
-
-void loop() {
-  lidarPointsBuffer.readPointsAndAddToBuffer();
-  savedIndex = lidarPointsBuffer.savePointsLocal(savedIndex);
 }
-
-/*
-void loop() {
-  motors.goTo(Vector2(100, 100), 50);
-  delay(2000);
-  motors.goTo(Vector2(-100, -100), 50);
-  delay(2000);
-  motors.goTo(Vector2(100, -100), 50);
-  delay(2000);
-  motors.goTo(Vector2(-100, 100), 50);
-  delay(2000);
-}*/
-
-//100!
