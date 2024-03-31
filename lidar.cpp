@@ -154,7 +154,7 @@ void readPointsAndAddToBuffer(CircularLidarPointsBuffer& pointsBuffer) {
       uint8_t crcCheck = buffer[44];
 
       if (_calCRC8FromBuffer(buffer, 44) == crcCheck) {
-        ancSavePointsLocal(startAngle, endAngle, data);
+        //ancSavePointsLocal(startAngle, endAngle, data);
         uint16_t step = angleStep(startAngle, endAngle);
         for (unsigned int i = 0; i < 12; i++) {
           pointsBuffer.addValue(
