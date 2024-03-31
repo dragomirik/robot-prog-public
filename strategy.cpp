@@ -46,7 +46,11 @@ bool closeToShoot(FieldProperties fP, RobotState cS, Vector2 gL) {
   return targetInFrontOfRobot(fP, cS, gL) && gL.norm() <= 30;
 }
 
-int getSidePosition(FieldProperties fP, RobotState cS) {
+bool ballIsDetected(FieldProperties fP, RobotState cS, Vector2 tL) {
+  return true;  // TODO
+}
+
+int getSidePosition(FieldProperties fP, RobotState cS, Vector2 bL) {
   if (cS.myPos().x() < 0) {
     return -1;
   } else {
@@ -54,14 +58,14 @@ int getSidePosition(FieldProperties fP, RobotState cS) {
   }
 }
 
-Vector2 goToBallStrategy(FieldProperties fP, RobotState cS) {
+Vector2 goToBallStrategy(FieldProperties fP, RobotState cS, Vector2 bL) {
   return Vector2(
       cS.ballPos().x(),
       cS.ballPos().y() - fP.robotRadius() * 1.5);
 }
 
-Vector2 goToBallAvoidingBallStrategy(FieldProperties fP, RobotState cS) {
-  if (getSidePosition(fP, cS) == -1) {
+Vector2 goToBallAvoidingBallStrategy(FieldProperties fP, RobotState cS, Vector2 bL) {
+  if (getSidePosition(fP, cS, bL) == -1) {
     return Vector2(
         cS.ballPos().x() + fP.robotRadius() + 6,
         cS.ballPos().y() - fP.robotRadius() * 1.5);
@@ -72,8 +76,16 @@ Vector2 goToBallAvoidingBallStrategy(FieldProperties fP, RobotState cS) {
   }
 }
 
-Vector2 accelerateToGoalStrategy(FieldProperties fP, RobotState cS) {
+Vector2 accelerateToGoalStrategy(FieldProperties fP, RobotState cS, Vector2 bL) {
   return Vector2(
       fP.enemyGoalPos().x(),
       fP.enemyGoalPos().y() - 15);
+}
+
+Vector2 slalowingBackwardsStrategy(FieldProperties fP, RobotState cS, Vector2 bL) {
+  return Vector2(0, 0);  // TODO
+}
+
+Vector2 shootStrategy(FieldProperties fP, RobotState cS, Vector2 bL) {
+  return Vector2(0, 0);  // TODO
 }

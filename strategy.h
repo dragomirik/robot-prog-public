@@ -14,6 +14,7 @@ bool targetJustBehindOfRobot(FieldProperties fP, RobotState cS, Vector2 tL);
 bool ballIsDetected(FieldProperties fP, RobotState cS, Vector2 tL);
 bool ballIsCaught(FieldProperties fP, RobotState cS, Vector2 bL);
 bool closeToShoot(FieldProperties fP, RobotState cS, Vector2 L);
+
 int getSidePosition(FieldProperties fP, RobotState cS, Vector2 bL);
 
 Vector2 goToBallStrategy(FieldProperties fP, RobotState cS, Vector2 bL);
