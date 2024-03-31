@@ -20,16 +20,16 @@ const FieldProperties fieldProperties = FieldProperties(
 const Motors motors = Motors(
 
     // Arduino UNO
-    MotorMov(11, 12, 0, -55),
-    MotorMov(5, 4, 0, 55),
-    MotorMov(6, 7, 0, -125),
-    MotorMov(9, 8, 0, 125)
+    MotorMov(11, 12, 0, Degree(-55)),
+    MotorMov(5, 4, 0, Degree(55)),
+    MotorMov(6, 7, 0, Degree(-125)),
+    MotorMov(9, 8, 0, Degree(125))
 
     // Teensy
-    /*MotorMov(25, 24, 0, -55),
-    MotorMov(3, 2, 0, 55),
-    MotorMov(5, 4, 0, -125),
-    MotorMov(9, 6, 0, 125)*/
+    /*MotorMov(25, 24, 0, Degree(-55)),
+    MotorMov(3, 2, 0, Degree(55)),
+    MotorMov(5, 4, 0, Degree(-125)),
+    MotorMov(9, 6, 0, Degree(125))*/
 );
 
 size_t savedIndex = 0;
