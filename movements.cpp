@@ -12,7 +12,7 @@ MotorMov::MotorMov(
       _angleAxisKicker(angleAxisKicker * PI / 180) {
   pinMode(_pinPWM, OUTPUT);
   pinMode(_pinCWCCW, OUTPUT);
-  //pinMode(_pinFG, INPUT);
+  // pinMode(_pinFG, INPUT);
   stop();
   _direction = Direction::stopped;
 }
@@ -113,7 +113,7 @@ void Motors::goTo(Vector2 vector, int celerity) const {
     float MFLcelerity = cos(angle - frontLeft().angleAxisKicker());
     float MBRcelerity = -cos(angle - backRight().angleAxisKicker());
     float MBLcelerity = -cos(angle - backLeft().angleAxisKicker());
-    
+
     // The ratio to be used to calculate the speeds to be sent to the motors is calculated, taking into account the desired speed.
     float maximum = (max(abs(MFRcelerity), max(abs(MFLcelerity), max(abs(MBRcelerity), abs(MBLcelerity)))));
     // SerialDebug.println("max : " + String(max));
@@ -140,29 +140,29 @@ void Motors::goTo(Vector2 vector, int celerity) const {
     // SerialDebug.println(String(MBLcelerity) + ", speed=" + String(speedBL));
     // SerialDebug.println("************");
 
-// frontLeft().move(50);
-// delay(2000);
-// frontLeft().move(-50);
-// delay(2000);
-// frontLeft().stop();
+    // frontLeft().move(50);
+    // delay(2000);
+    // frontLeft().move(-50);
+    // delay(2000);
+    // frontLeft().stop();
 
-// frontRight().move(50);
-// delay(2000);
-// frontRight().move(-50);
-// delay(2000);
-// frontRight().stop();
+    // frontRight().move(50);
+    // delay(2000);
+    // frontRight().move(-50);
+    // delay(2000);
+    // frontRight().stop();
 
-// backRight().move(50);
-// delay(2000);
-// backRight().move(-50);
-// delay(2000);
-// backRight().stop();
+    // backRight().move(50);
+    // delay(2000);
+    // backRight().move(-50);
+    // delay(2000);
+    // backRight().stop();
 
-// backLeft().move(50);
-// delay(2000);
-// backLeft().move(-50);
-// delay(2000);
-// backLeft().stop();
+    // backLeft().move(50);
+    // delay(2000);
+    // backLeft().move(-50);
+    // delay(2000);
+    // backLeft().stop();
 
     frontRight().move(speedFR);
     frontLeft().move(speedFL);

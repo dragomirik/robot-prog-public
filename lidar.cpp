@@ -203,16 +203,3 @@ uint16_t angleStep(uint16_t startAngle, uint16_t endAngle, unsigned int lenMinus
 uint16_t angleFromStep(uint16_t startAngle, uint16_t step, unsigned int indice) {
   return (startAngle + (step * indice)) % 36000;
 }
-
-void ancSavePointsLocal(uint16_t startAngle, uint16_t endAngle, LidarPoint* data) {
-  // TODO modifier utilisant circularLidarPointsBuffer
-  uint16_t step = angleStep(startAngle, endAngle);
-  for (unsigned int i = 0; i < 12; i++) {
-    uint16_t angle = angleFromStep(startAngle, step, i);
-    SerialDebug.print(",(");
-    SerialDebug.print(angle);
-    SerialDebug.print(",");
-    SerialDebug.print(data[i].distance());
-    SerialDebug.print(")");
-  }
-}

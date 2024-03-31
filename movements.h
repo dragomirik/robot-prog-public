@@ -2,6 +2,7 @@
 #define MOUVEMENTS_H
 
 #include <Arduino.h>
+
 #include "utilities.h"
 
 // TODO supprimer la mémorisation de sens en la remplaçant par une détection en temps réel grâce à FG

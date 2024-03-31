@@ -33,7 +33,7 @@ bool RobotState::updateFromString(char &typeState, String &xReadingState, String
           xReadingState.toFloat(),
           yReadingState.toFloat()));
 
-      //SerialDebug.println("change to " + newMutableVector2.toString());
+      // SerialDebug.println("change to " + newMutableVector2.toString());
       if (typeState == 'b') {
         _ballPos = newMutableVector2;
       } else if (typeState == 'm') {

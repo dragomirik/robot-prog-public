@@ -20,9 +20,8 @@ Vector2 chooseStrategy(FieldProperties fP, RobotState cS) {
   }
 }
 
-
 bool targetInFrontOfRobot(FieldProperties fP, RobotState cS, Vector2 tL) {
-  //We consider that this margin percentage is required
+  // We consider that this margin percentage is required
   float longRobot = (fP.robotRadius() + (fP.ballRadius() * 2)) * 1.5;
   return tL.y() > longRobot;
 }
@@ -59,27 +58,23 @@ int getSidePosition(FieldProperties fP, RobotState cS) {
 Vector2 goToBallStrategy(FieldProperties fP, RobotState cS) {
   return Vector2(
       cS.ballPos().x(),
-      cS.ballPos().y() - fP.robotRadius()*1.5
-    );
+      cS.ballPos().y() - fP.robotRadius() * 1.5);
 }
 
-Vector2 goToBallAvoidingBallStrategy(FieldProperties fP, RobotState cS){
+Vector2 goToBallAvoidingBallStrategy(FieldProperties fP, RobotState cS) {
   if (getSidePosition(fP, cS) == -1) {
     return Vector2(
-      cS.ballPos().x() + fP.robotRadius() + 6,
-      cS.ballPos().y() - fP.robotRadius()*1.5
-    );
+        cS.ballPos().x() + fP.robotRadius() + 6,
+        cS.ballPos().y() - fP.robotRadius() * 1.5);
   } else {
     return Vector2(
-      cS.ballPos().x() - fP.robotRadius() + 6,
-      cS.ballPos().y() - fP.robotRadius()*1.5
-    );
+        cS.ballPos().x() - fP.robotRadius() + 6,
+        cS.ballPos().y() - fP.robotRadius() * 1.5);
   }
 }
 
 Vector2 accelerateToGoalStrategy(FieldProperties fP, RobotState cS) {
   return Vector2(
       fP.enemyGoalPos().x(),
-      fP.enemyGoalPos().y() - 15
-    );
+      fP.enemyGoalPos().y() - 15);
 }
