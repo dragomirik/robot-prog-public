@@ -91,28 +91,12 @@ void Motors::goTo(Vector2 vector, int celerity) const {
   if (vector.norm() < 3) {  // TODO faire de 3 un parametre global
     fullStop();
   } else {
-    // If the y value is zero, the angle is 90°.
-    float angle;
-    if (vector.y() == 0) {
-      angle = PI / 2;
-    } else {
-      angle = atan2(abs(vector.x()), abs(vector.y()));
-    }
-
-    // Change the angle according to the corner in which the destination point is located
-    if (vector.x() <= 0 && vector.y() >= 0) {
-      angle *= -1;
-    } else if (vector.x() >= 0 && vector.y() <= 0) {
-      angle = PI - angle;
-    } else if (vector.x() <= 0 && vector.y() <= 0) {
-      angle -= PI;
-    }
 
     // The speed to be sent to the motors is calculated
-    float MFRcelerity = cos(angle - frontRight().angleAxisKicker());
-    float MFLcelerity = cos(angle - frontLeft().angleAxisKicker());
-    float MBRcelerity = -cos(angle - backRight().angleAxisKicker());
-    float MBLcelerity = -cos(angle - backLeft().angleAxisKicker());
+    float MFRcelerity = cos(vector.angle() - frontRight().angleAxisKicker());
+    float MFLcelerity = cos(vector.angle() - frontLeft().angleAxisKicker());
+    float MBRcelerity = cos(vector.angle() - backRight().angleAxisKicker());
+    float MBLcelerity = cos(vector.angle() - backLeft().angleAxisKicker());
 
     // The ratio to be used to calculate the speeds to be sent to the motors is calculated, taking into account the desired speed.
     float maximum = (max(abs(MFRcelerity), max(abs(MFLcelerity), max(abs(MBRcelerity), abs(MBLcelerity)))));

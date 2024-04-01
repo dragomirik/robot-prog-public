@@ -23,6 +23,29 @@ float Vector2::norm() const {
   return sqrt(sq(x()) + sq(y()));
 }
 
+float Vector2::angle() const {
+
+  float angle;
+
+  // If the y value is zero, the angle is 90°.
+  if (y() == 0) {
+    angle = PI / 2;
+  } else {
+    angle = atan2(abs(x()), abs(y()));
+  }
+
+  // Change the angle according to the corner in which the destination point is located
+  if (x() >= 0 && y() >= 0) {
+    angle *= -1;
+  } else if (x() <= 0 && y() <= 0) {
+    angle = PI - angle;
+  } else if (x() >= 0 && y() <= 0) {
+    angle -= PI;
+  }
+
+  return angle;
+}
+
 ///////MUTABLEVECTOR2
 
 MutableVector2::MutableVector2(Vector2 vector2)
