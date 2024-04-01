@@ -42,6 +42,8 @@ int nbLidarPoints = 456;
 RobotState currentState = RobotState(
     Vector2(0, 0),
     Vector2(0, 0),
+    Vector2(0, 0),
+    Vector2(0, 0),
     Vector2(0, 0));
 
 void setup() {
