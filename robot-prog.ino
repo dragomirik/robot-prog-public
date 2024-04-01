@@ -32,14 +32,16 @@ const Motors motors = Motors(
 );
 
 size_t savedIndex = 0;
-CircularLidarPointsBuffer lidarPointsBuffer = CircularLidarPointsBuffer(1000);
 
 char typeState = 'x';
 String xReadingState = "";
 String yReadingState = "";
 bool writingInXState = true;
+int nbLidarPoints = 456;
 
 RobotState currentState = RobotState(
+    Vector2(0, 0),
+    Vector2(0, 0),
     Vector2(0, 0),
     Vector2(0, 0),
     Vector2(0, 0));
@@ -47,12 +49,52 @@ RobotState currentState = RobotState(
 void setup() {
   SerialDebug.begin(115200);
   // SerialCam.begin(115200);
-  // SerialLidar.begin(230400);
+  SerialLidar.begin(230400);
 }
 
-/*
 void loop() {
-  while (SerialCam.available()) {
+  CircularLidarPointsBuffer lidarPointsBuffer = CircularLidarPointsBuffer(nbLidarPoints);
+  std::vector<LidarPoint> points;
+
+  for (int i = 0; i < 50; i++) {
+      std::vector<LidarPoint> lidarPoints = lidarPointsBuffer.getPoints();
+      for (size_t j = 0; j < lidarPoints.size(); j++) {
+        LidarPoint lidarPoint = lidarPoints[j];
+        if(lidarPoint.distance() > 100) { // on ne prend pas les points < 10cm
+          points.push_back(lidarPoint);
+        }
+      }
+  }
+  SerialDebug.println("First lidarPoint(0): " + points[0].toString());
+  SerialDebug.println("Last lidarPoint(" + String(points.size()) + "): " + points[points.size() - 1].toString());
+
+  // création du log pour visualisation : 
+  String log = "";
+  for (size_t i = 0; i < points.size(); i++) {
+    LidarPoint lidarPoint = points[i];
+    log += "(" + String(lidarPoint.angle()) + "," + String(lidarPoint.distance()) + ")," ;
+  }
+  SerialDebug.println(log);
+
+  // calcul de la position :
+  double sumX = 0.0, sumY = 0.0;
+  for (size_t i = 0; i < points.size(); i++) {
+    LidarPoint lidarPoint = points[i];
+    float x = lidarPoint.distance() * std::cos(lidarPoint.angle() / 18000.0 * M_PI);
+    float y = lidarPoint.distance() * std::sin(lidarPoint.angle() / 18000.0 * M_PI);
+    sumX += x;
+    sumY += y;
+  }
+
+  double pos_x = sumX / points.size();
+  double pos_y = sumY / points.size();
+  SerialDebug.println("position: x=" + String(pos_x / 10.0) + "cm, y=" + String(pos_y / 10.0) + "cm");
+
+  SerialDebug.println("pause");
+  delay(2000);
+ 
+
+  /*while (SerialCam.available()) {
     //CAM
     char newChar = SerialCam.read();
     SerialDebug.println('"' + String(newChar) + '"');
@@ -62,30 +104,11 @@ void loop() {
     //LIDAR
     lidarPointsBuffer.readPointsAndAddToBuffer();
 
-    //TODO detection angles
+    //TODO detection murs
+    
 
     //STRATEGY
     Vector2 target = chooseStrategy(fieldProperties, currentState);
     motors.goTo(target, 255);
-  }
-}
-*/
-
-//Exemple de code pour boucler sur le dernier tour du lidar
-void loop() {
-  //...
-  if (lidarPointsBuffer.lastRoundIndex() <= lidarPointsBuffer.index()) {
-    // a full lap has not been completed
-    for (size_t i = lidarPointsBuffer.lastRoundIndex(); i < lidarPointsBuffer.index(); i++) {
-      //call a function
-    }
-  } else {
-    // an entire lap has been completed
-    for (size_t i = lidarPointsBuffer.lastRoundIndex(); i < lidarPointsBuffer.sizeFilled(); i++) {
-      //call the same function
-    }
-    for (size_t i = 0; i < lidarPointsBuffer.index(); i++) {
-      //call the same function
-    }
-  }
+  }*/
 }

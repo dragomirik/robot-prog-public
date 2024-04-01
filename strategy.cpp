@@ -51,11 +51,11 @@ bool targetJustBehindOfRobot(FieldProperties fP, RobotState cS, Vector2 tL) {
 }
 
 bool ballIsCaught(FieldProperties fP, RobotState cS, Vector2 bL) {
-  return targetInFrontOfRobot(fP, cS, bL) && bL.norm() <= fP.robotRadius() + fP.ballRadius() + 6;
+  return targetJustInFrontOfRobot(fP, cS, bL) && bL.norm() <= fP.robotRadius() + fP.ballRadius() + 6;
 }
 
 bool closeToShoot(FieldProperties fP, RobotState cS, Vector2 gL) {
-  return targetInFrontOfRobot(fP, cS, gL) && gL.norm() <= 30;
+  return targetJustInFrontOfRobot(fP, cS, gL) && gL.norm() <= 30;
 }
 
 int getSidePosition(FieldProperties fP, RobotState cS) {
