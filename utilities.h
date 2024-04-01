@@ -24,7 +24,7 @@ class Vector2 {
   Vector2 distanceRef(Vector2 other) const;
   float distance(Vector2 other) const;
   float norm() const;
-  float angle() const;
+  Radians angle() const;
 
  private:
   const float _x, _y;

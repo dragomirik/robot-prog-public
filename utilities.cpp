@@ -23,7 +23,7 @@ float Vector2::norm() const {
   return sqrt(sq(x()) + sq(y()));
 }
 
-float Vector2::angle() const {
+Radians Vector2::angle() const {
 
   float angle;
 
@@ -43,7 +43,7 @@ float Vector2::angle() const {
     angle -= PI;
   }
 
-  return angle;
+  return Radians(angle);
 }
 
 ///////MUTABLEVECTOR2
