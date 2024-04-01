@@ -58,6 +58,7 @@ class CircularLidarPointsBuffer {
   String toString() const;
 
   void readPointsAndAddToBuffer();
+  std::vector<LidarPoint> getPoints();
 
  private:
   MutableLidarPoint *_buffer;
