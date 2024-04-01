@@ -88,7 +88,7 @@ void Motors::fullStop() const {
 
 void Motors::goTo(Vector2 vector, int celerity) const {
   // If the distance to the destination is less than x, stop the motors
-  if (sq(vector.x()) + sq(vector.y()) < sq(3)) {  // TODO faire de 3 un parametre global
+  if (vector.norm() < 3) {  // TODO faire de 3 un parametre global
     fullStop();
   } else {
     // If the y value is zero, the angle is 90°.

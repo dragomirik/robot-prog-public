@@ -5,14 +5,15 @@
 #include "utilities.h"
 
 const FieldProperties fieldProperties = FieldProperties(
-    5,              // fieldLength
-    10,             // fieldDepth
-    0,              // spaceBeforeLineSide
-    2,              // goalWidth
-    Vector2(0, 0),  // myGoalPos
-    Vector2(0, 0),  // enemyGoalPos
-    0.2,            // robotRadius
-    0.05            // ballRadius
+    192,    // fieldLength
+    158,   // fieldWidth
+    0,    // spaceBeforeLineSide
+    2,    // goalWidth
+    Vector2(0,-115),   //myGoalPos
+    Vector2(0,115),   //enemyGoalPos
+    Vector2(-5000,-5000),  //noneVect
+    0.2,  // robotRadius
+    0.05  // ballRadius
 );
 
 const Motors motors = Motors(
