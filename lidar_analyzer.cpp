@@ -1,6 +1,6 @@
 #include "lidar_analyzer.h"
 #include "lidar.h"
-
+/*
 
 Vector3 computeCentroid(const std::vector<Vector3>& corners) {
     Vector3 centroid = {0, 0};
@@ -344,4 +344,4 @@ bool findIntersection(const Line& l1, const Line& l2, double& x, double& y) {
     y = (l2.rho * 10 * cosTheta1 - l1.rho * 10 * cosTheta2) / determinant;
 
     return true; 
-}
+}*/

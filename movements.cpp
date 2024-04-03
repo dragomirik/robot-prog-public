@@ -9,7 +9,7 @@ MotorMov::MotorMov(
     : _pinPWM(pinPWM),
       _pinCWCCW(pinCWCCW),
       _pinFG(pinFG),
-      _angleAxisKicker(angleAxisKicker) {
+      _angleAxisKicker(angleAxisKicker - (PI/2)) {
   pinMode(_pinPWM, OUTPUT);
   pinMode(_pinCWCCW, OUTPUT);
   // pinMode(_pinFG, INPUT);
@@ -30,11 +30,12 @@ void MotorMov::move(int value) {
     if (_direction == Direction::backward) {
       stop();
     }
-    if (isLeft()) {
-      _cwccw(LOW);
-    } else {
-      _cwccw(HIGH);
-    }
+    // if (isLeft()) {
+    //   _cwccw(LOW);
+    // } else {
+    //   _cwccw(HIGH);
+    // }
+    _cwccw(HIGH);
     _pwm(value);
     _direction = Direction::forward;
   } else {
@@ -42,11 +43,12 @@ void MotorMov::move(int value) {
     if (_direction == Direction::forward) {
       stop();
     }
-    if (isLeft()) {
-      _cwccw(HIGH);
-    } else {
-      _cwccw(LOW);
-    }
+    // if (isLeft()) {
+    //   _cwccw(HIGH);
+    // } else {
+    //   _cwccw(LOW);
+    // }
+    _cwccw(LOW);
     _pwm(-value);
     _direction = Direction::backward;
   }
@@ -86,7 +88,7 @@ void Motors::fullStop() const {
   backLeft().stop();
 }
 
-void Motors::goTo(Vector2 vector, int celerity) const {
+void Motors::goTo(Vector2 vector, int celerity, float orientation) const {
   // If the distance to the destination is less than x, stop the motors
   if (vector.norm() < 3) {  // TODO faire de 3 un parametre global
     fullStop();
@@ -101,6 +103,7 @@ void Motors::goTo(Vector2 vector, int celerity) const {
     // The ratio to be used to calculate the speeds to be sent to the motors is calculated, taking into account the desired speed.
     float maximum = (max(abs(MFRcelerity), max(abs(MFLcelerity), max(abs(MBRcelerity), abs(MBLcelerity)))));
     float rapport = (celerity / 255.0) / maximum;
+    float rotation = orientation*celerity*0.8;
 
     // SerialDebug.println("rapport : " + String(rapport));
 
@@ -110,10 +113,10 @@ void Motors::goTo(Vector2 vector, int celerity) const {
     float speedFL = MFLcelerity * rapport * 255;
     float speedBR = MBRcelerity * rapport * 255;
     float speedBL = MBLcelerity * rapport * 255;
-
-    frontRight().move(speedFR);
-    frontLeft().move(speedFL);
-    backRight().move(speedBR);
-    backLeft().move(speedBL);
+    
+    frontRight().move(speedFR-rotation);
+    frontLeft().move(speedFL-rotation);
+    backRight().move(speedBR-rotation);
+    backLeft().move(speedBL-rotation);
   }
 }

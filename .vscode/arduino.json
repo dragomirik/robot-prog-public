@@ -1,6 +1,5 @@
 {
-    "board": "teensy:avr:teensy41",
-    "port": "COM9",
-    "sketch": "robot-prog.ino",
-    "configuration": "usb=serial,speed=600,opt=o2std,keys=en-us"
+    "board": "arduino:avr:uno",
+    "port": "COM22",
+    "sketch": "robot-prog.ino"
 }

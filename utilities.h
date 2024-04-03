@@ -4,8 +4,11 @@
 #include <Arduino.h>
 
 #define SerialDebug Serial
-#define SerialCam Serial1
-#define SerialLidar Serial2
+#define SerialCam Serial
+#define SerialLidar Serial
+
+class Radians;
+class Degree;
 
 class Vector2 {
  public:
@@ -24,6 +27,7 @@ class Vector2 {
   Vector2 distanceRef(Vector2 other) const;
   float distance(Vector2 other) const;
   float norm() const;
+  float realNorm() const;
   Radians angle() const;
 
  private:
@@ -56,8 +60,6 @@ class MutableVector2 {
  private:
   float _x, _y;
 };
-
-class Radians;
 
 class Degree {
  private:

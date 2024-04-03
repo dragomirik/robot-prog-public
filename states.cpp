@@ -78,7 +78,7 @@ bool RobotState::updateFromString(char &typeState, String &xReadingState, String
       typeState = 'x';
     }
   } else {
-    SerialDebug.println("ERROR CATCHED RobotState : unknown char (skipped)");
+    SerialDebug.println("ERROR CATCHED RobotState : unknown char (skipped) '" + String(int(newChar)) + "'");
   }
   return false;
 }

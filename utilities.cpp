@@ -23,6 +23,10 @@ float Vector2::norm() const {
   return sqrt(sq(x()) + sq(y()));
 }
 
+float Vector2::realNorm() const {
+  return 0.25 * pow(2.718, 0.054 * sqrt(sq(x()) + sq(y()))) + 5;
+}
+
 Radians Vector2::angle() const {
 
   float angle;
