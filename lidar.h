@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 #include "utilities.h"
-/*
+
 class LidarPoint {
  public:
   LidarPoint(uint16_t distance, uint8_t intensity, uint16_t angle);
@@ -102,5 +102,5 @@ uint16_t _get2BytesLsbMsb(byte buffer[], int index);
 
 uint16_t angleStep(uint16_t startAngle, uint16_t endAngle, unsigned int lenMinusOne = 11);
 uint16_t angleFromStep(uint16_t startAngle, uint16_t step, unsigned int indice);
-*/
+
 #endif

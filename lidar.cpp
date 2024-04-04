@@ -1,5 +1,5 @@
 #include "lidar.h"
-/*
+
 //////LIDARPOINT
 
 LidarPoint::LidarPoint(uint16_t distance, uint8_t intensity, uint16_t angle)
@@ -188,19 +188,21 @@ void CircularLidarPointsBuffer::readPointsAndAddToBuffer() {
   }
 }
 
-
 std::vector<LidarPoint> CircularLidarPointsBuffer::getPoints() {
-  std::vector<LidarPoint> points;  
-  if(SerialLidar.available()) {
+  std::vector<LidarPoint> points; 
+   
+  if(true)
+  // if(SerialLidar.available()) 
+  {
     if (!SerialLidar.find("T,")) {  // equivalent en char de 84 44 (decimal)
-      SerialDebug.println("error, no header-verlen found in RX for the lidar LD19");
+      // SerialDebug.println("error, no header-verlen found in RX for the lidar LD19");
     } else {
       // The previous instruction (find) jumped to the beginning of the information
       // Now the stream is aligned
       byte buffer[45];
       size_t nbrBytesReceived = SerialLidar.readBytes(buffer, 45);
       if (nbrBytesReceived != 45) {
-        SerialDebug.println("error, wrong number of bytes received (" + String(nbrBytesReceived) + ")");
+        // SerialDebug.println("error, wrong number of bytes received (" + String(nbrBytesReceived) + ")");
       } else {
         uint16_t speed = _get2BytesLsbMsb(buffer, 0);
         uint16_t startAngle = _get2BytesLsbMsb(buffer, 2);
@@ -236,6 +238,9 @@ std::vector<LidarPoint> CircularLidarPointsBuffer::getPoints() {
       }
     }
   }
+  else {
+    // SerialDebug.println("LIDAR not connected or no data available.");
+  }
   
   return points;
 }
@@ -264,4 +269,4 @@ uint16_t angleStep(uint16_t startAngle, uint16_t endAngle, unsigned int lenMinus
 
 uint16_t angleFromStep(uint16_t startAngle, uint16_t step, unsigned int indice) {
   return (startAngle + (step * indice)) % 36000;
-}*/
+}

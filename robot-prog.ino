@@ -1,8 +1,8 @@
 #include "lidar.h"
-#include "lidar_analyzer.h"
 #include "movements.h"
 #include "states.h"
 #include "strategy.h"
+#include "lidar_analyzer.h"
 #include "utilities.h"
 
 const FieldProperties fieldProperties = FieldProperties(
@@ -20,16 +20,16 @@ const FieldProperties fieldProperties = FieldProperties(
 const Motors motors = Motors(
 
     // Arduino UNO
-    MotorMov(11, 12, 0, Degree(-40)),
-    MotorMov(5, 4, 0, Degree(40)),
-    MotorMov(6, 7, 0, Degree(-140)),
-    MotorMov(9, 8, 0, Degree(140))
+    // MotorMov(11, 12, 0, Degree(-40)),
+    // MotorMov(5, 4, 0, Degree(40)),
+    // MotorMov(6, 7, 0, Degree(-140)),
+    // MotorMov(9, 8, 0, Degree(140))
 
     // Teensy
-    // MotorMov(3, 4, 0, Degree(-40)),
-    // MotorMov(11, 12, 0, Degree(40)),
-    // MotorMov(22, 23, 0, Degree(-140)),
-    // MotorMov(36, 37, 0, Degree(140))
+    MotorMov(3, 4, 0, Degree(-40)),
+    MotorMov(11, 12, 0, Degree(40)),
+    MotorMov(22, 23, 0, Degree(-140)),
+    MotorMov(36, 37, 0, Degree(140))
 );
 
 size_t savedIndex = 0;
@@ -50,7 +50,7 @@ RobotState currentState = RobotState(
 void setup() {
   SerialDebug.begin(115200);
   SerialCam.begin(115200);
-  // SerialLidar.begin(230400);
+  SerialLidar.begin(230400);
 }
 
 /*std::vector<Line> houghTransform(const std::vector<Vector2>& points, int numRho, double rhoStep, int numTheta, double thetaStep, int threshold) {
@@ -95,22 +95,34 @@ void setup() {
     return lines;
 }*/
 
+int counter = 0;
+
 void loop() {
+  counter++;
+  RobotInfos infos;
+  double nearestWallDistance = 0;
+
+  if(fmod(counter, 30) == 0) {
+    counter = 0;
+    infos = getFieldInfos(true, false);
+    if(infos.nearestWall_distance > 0) {
+      nearestWallDistance = infos.nearestWall_distance;
+    }
+    SerialDebug.println("orientation=" + String(infos.orientation) + " rad (" + String(infos.orientation * (180.0 / M_PI)) 
+      + "°), Front Wall distance=" + String(infos.frontWall_distance / 10.0) 
+      + " cm, Nearest Wall distance=" + String(infos.nearestWall_distance / 10.0) + " cm");
+  }
+
   if (SerialCam.available()) {
     char newChar = SerialCam.read();
     // SerialDebug.println('"' + String(newChar) + '"');
     if (currentState.updateFromString(typeState, xReadingState, yReadingState, writingInXState, newChar)) {
-      // FieldInfos infos = getFieldInfos(false, false);
-      // SerialDebug.println("Centre du terrain: x=" + String(infos.center.x) + "mm, y=" + String(infos.center.y) +
-      // "mm, orientation=" + String(infos.orientation) + "rad (" + String(infos.orientation * (180.0 / M_PI)) + "°)");
-      SerialDebug.println(currentState.enemyGoalPos().toString());
-      int speedMotors = 30;
+      currentState.nearestWallDistance = nearestWallDistance;
+      int speedMotors = 100;
       Vector2 target = chooseStrategy(fieldProperties, currentState);
       if (target == Vector2(fieldProperties.enemyGoalPos().x(), fieldProperties.enemyGoalPos().y() + 15)) {
-        speedMotors = 60;
+        speedMotors = 200;
       }
-
-      
 
       motors.goTo(target, speedMotors, currentState.enemyGoalPos().angle());
     }

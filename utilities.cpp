@@ -47,6 +47,11 @@ Radians Vector2::angle() const {
     angle -= PI;
   }
 
+  // NoneVector case
+  if (x() == 0 && y() == 0) {
+    angle = 0;
+  }
+
   return Radians(angle);
 }
 

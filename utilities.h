@@ -4,8 +4,8 @@
 #include <Arduino.h>
 
 #define SerialDebug Serial
-#define SerialCam Serial
-#define SerialLidar Serial
+#define SerialCam Serial8
+#define SerialLidar Serial2
 
 class Radians;
 class Degree;

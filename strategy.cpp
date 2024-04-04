@@ -1,5 +1,7 @@
 #include "strategy.h"
 
+const int goalMinDistance = 100;
+
 Vector2 chooseStrategy(FieldProperties fP, RobotState cS) {
   Vector2 bL = cS.ballPos();
   //Vector2 bL = cS.myPos().distanceRef(cS.ballPos());
@@ -33,8 +35,10 @@ bool leavingField(FieldProperties fP, RobotState cS) {
          (fP.fieldWidth()/2 - fP.robotRadius() < cS.myPos().x()) || 
          (cS.myPos().y() < -fP.fieldLength()/2 + fP.robotRadius()) || 
          (fP.fieldLength()/2 - fP.robotRadius() < cS.myPos().y()) || 
-         (cS.enemyGoalPos().norm() < 30 && cS.enemyGoalPos().realNorm() > fP.robotRadius()) || 
-         (cS.myGoalPos().norm() < 30 && cS.myGoalPos().realNorm() > fP.robotRadius());
+         (cS.enemyGoalPos().norm() < goalMinDistance && cS.enemyGoalPos().realNorm() > fP.robotRadius()) || 
+         (cS.myGoalPos().norm() < goalMinDistance && cS.myGoalPos().realNorm() > fP.robotRadius()) ||
+        //  (cS.nearestWallDistance > 0 && cS.nearestWallDistance < 300)
+         ;
 }
 
 bool ballIsDetected(FieldProperties fP, RobotState cS) {
@@ -67,7 +71,7 @@ bool closeToShoot(FieldProperties fP, RobotState cS, Vector2 gL) {
 }
 
 int getBallSidePositionFromRobot(FieldProperties fP, RobotState cS, Vector2 bL) {
-  if (bL.x() < - fP.robotRadius()*3) {
+  if (bL.x() < - fP.robotRadius()*5) {
     return -1;
   } else if (fP.robotRadius()*1.5 < bL.x()) {
     return 1;
@@ -94,8 +98,8 @@ Vector2 refrainFromLeavingStrategy(FieldProperties fP, RobotState cS) {
     yDirection = -10;
   }
 
-  if ((cS.enemyGoalPos().norm() < 30 && cS.enemyGoalPos().realNorm() > fP.robotRadius()) ||
-      (cS.myGoalPos().norm() < 30 && cS.myGoalPos().realNorm() > fP.robotRadius())) {
+  if ((cS.enemyGoalPos().norm() < goalMinDistance && cS.enemyGoalPos().realNorm() > fP.robotRadius()) ||
+      (cS.myGoalPos().norm() < goalMinDistance && cS.myGoalPos().realNorm() > fP.robotRadius())) {
     yDirection = -10;
   }
 
@@ -116,7 +120,7 @@ Vector2 goToBallStrategy(FieldProperties fP, RobotState cS) {
 }
 
 Vector2 goToBallAvoidingBallStrategy(FieldProperties fP, RobotState cS, Vector2 bL) {
-  int distanceDevitement = fP.robotRadius()*3;
+  int distanceDevitement = fP.robotRadius()*5;
   if (cS.ballPos().x() < 0) {   
     if (getBallSidePositionFromRobot(fP, cS, bL) == -1){
       SerialDebug.println("full gauche");
