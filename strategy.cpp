@@ -36,9 +36,8 @@ bool leavingField(FieldProperties fP, RobotState cS) {
          (cS.myPos().y() < -fP.fieldLength()/2 + fP.robotRadius()) || 
          (fP.fieldLength()/2 - fP.robotRadius() < cS.myPos().y()) || 
          (cS.enemyGoalPos().norm() < goalMinDistance && cS.enemyGoalPos().realNorm() > fP.robotRadius()) || 
-         (cS.myGoalPos().norm() < goalMinDistance && cS.myGoalPos().realNorm() > fP.robotRadius()) ||
-        //  (cS.nearestWallDistance > 0 && cS.nearestWallDistance < 300)
-         ;
+         (cS.myGoalPos().norm() < goalMinDistance && cS.myGoalPos().realNorm() > fP.robotRadius());
+        // (cS.nearestWallDistance > 0 && cS.nearestWallDistance < 300);
 }
 
 bool ballIsDetected(FieldProperties fP, RobotState cS) {

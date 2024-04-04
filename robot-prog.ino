@@ -118,10 +118,10 @@ void loop() {
     // SerialDebug.println('"' + String(newChar) + '"');
     if (currentState.updateFromString(typeState, xReadingState, yReadingState, writingInXState, newChar)) {
       currentState.nearestWallDistance = nearestWallDistance;
-      int speedMotors = 100;
+      int speedMotors = 120;
       Vector2 target = chooseStrategy(fieldProperties, currentState);
       if (target == Vector2(fieldProperties.enemyGoalPos().x(), fieldProperties.enemyGoalPos().y() + 15)) {
-        speedMotors = 200;
+        speedMotors = 255;
       }
 
       motors.goTo(target, speedMotors, currentState.enemyGoalPos().angle());
