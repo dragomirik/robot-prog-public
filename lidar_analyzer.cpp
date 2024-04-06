@@ -67,6 +67,7 @@ double calculateAngle(Vector3 center, Vector3 robot) {
     return std::atan2(deltaY, deltaX);
 }
 
+// Explication de l'algorithme : https://www.keymolen.com/2013/05/hough-transformation-c-implementation.html 
 std::vector<Line> houghTransform(const std::vector<Vector2>& points, int numRho, int numTheta, double thetaStep, int threshold) {
     std::vector<Line> lines;
     double rhoStep = numRho * 2 * numTheta / HoughTransformMemorySize;
