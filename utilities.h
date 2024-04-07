@@ -29,6 +29,8 @@ class Vector2 {
   float norm() const;
   float realNorm() const;
   Radians angle() const;
+  Vector2 rotate(Radians rad);
+  Vector2 transformToUV(Vector2 origin, Radians rotationAngle);
 
  private:
   const float _x, _y;
