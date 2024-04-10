@@ -2,7 +2,7 @@
 #include "movements.h"
 #include "states.h"
 #include "strategy.h"
-//#include "lidar_analyzer.h"
+#include "lidar_analyzer.h"
 #include "utilities.h"
 
 const FieldProperties fieldProperties = FieldProperties(
@@ -113,15 +113,20 @@ void loop() {
   if (SerialCam.available()) {
     char newChar = SerialCam.read();
     // SerialDebug.println('"' + String(newChar) + '"');
-    if (currentState.updateFromString(typeState, xReadingState, yReadingState, writingInXState, newChar)) {
+    if (currentState.updateFromString(readingData, newChar)) {
       currentState.nearestWallDistance = nearestWallDistance;
       int speedMotors = 120;
-      Vector2 target = chooseStrategy(fieldProperties, currentState);
+      FutureAction action = chooseStrategy(fieldProperties, currentState);
+      /*
       if (target == Vector2(fieldProperties.enemyGoalPos().x(), fieldProperties.enemyGoalPos().y() + 15)) {
         speedMotors = 255;
+      }*/
+      if (action.changeMove()) {
+        motors.goTo(action.target(), speedMotors, currentState.enemyGoalPos().angle());
       }
-
-      motors.goTo(target, speedMotors, currentState.enemyGoalPos().angle());
+      if (action.activeKicker()) {
+        //active kicker
+      }
     }
 
     /*

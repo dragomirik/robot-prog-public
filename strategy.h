@@ -9,18 +9,18 @@
 class FutureAction {
  private:
   const bool _changeMove;
-  const Vector2 _goToPos;
+  const Vector2 _target;
   const bool _activeKicker;
 
  public:
   FutureAction(
-      Vector2 goToPos,
+      Vector2 target,
       bool activeKicker);
   FutureAction(
       bool activeKicker);
 
   inline bool changeMove() const { return _changeMove; }
-  inline Vector2 goToPos() const { return _goToPos; }
+  inline Vector2 target() const { return _target; }
   inline bool activeKicker() const { return _activeKicker; }
 };
 

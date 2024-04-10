@@ -1,13 +1,13 @@
 #include "strategy.h"
 
 FutureAction::FutureAction(
-    Vector2 goToPos,
+    Vector2 target,
     bool activeKicker) : _changeMove(true),
-                         _goToPos(goToPos),
+                         _target(target),
                          _activeKicker(activeKicker){};
 FutureAction::FutureAction(
     bool activeKicker) : _changeMove(false),
-                         _goToPos(Vector2(0, 0)),
+                         _target(Vector2(0, 0)),
                          _activeKicker(activeKicker){};
 
 ////////
