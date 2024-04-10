@@ -18,6 +18,26 @@ FieldProperties::FieldProperties(
       _robotRadius(robotRadius),
       _ballRadius(ballRadius) {}
 
+void ReadingData::reinitWith(char newChar) {
+  typeState = newChar;
+  xReadingState = "";
+  yReadingState = "";
+  writingInXState = true;
+}
+
+String ReadingData::toString() const {
+  String s = "(ReadingData, ";
+  s += typeState;
+  s += ", ";
+  s += xReadingState;
+  s += ", ";
+  s += yReadingState;
+  s += ", ";
+  s += writingInXState;
+  s += ")";
+  return s;
+}
+
 RobotState::RobotState(
     Vector2 ballPos,
     Vector2 myPos,
@@ -30,50 +50,44 @@ RobotState::RobotState(
       _myGoalPos(myGoalPos),
       _enemyGoalPos(enemyGoalPos) {}
 
-bool RobotState::updateFromString(char &typeState, String &xReadingState, String &yReadingState, bool &writingInXState, char newChar) {
+bool RobotState::updateFromString(ReadingData readingData, char newChar) {
   if (newChar == 'b' || newChar == 'm' || newChar == 'p' || newChar == 'g' || newChar == 'G') {
-    if (xReadingState != "" && yReadingState != "") {
+    if (readingData.xReadingState != "" && readingData.yReadingState != "") {
       MutableVector2 newMutableVector2 = MutableVector2(Vector2(
-          xReadingState.toFloat(),
-          yReadingState.toFloat()));
+          readingData.xReadingState.toFloat(),
+          readingData.yReadingState.toFloat()));
 
       // SerialDebug.println("change to " + newMutableVector2.toString());
-      if (typeState == 'b') {
+      if (readingData.typeState == 'b') {
         _ballPos = newMutableVector2;
-      } else if (typeState == 'm') {
+      } else if (readingData.typeState == 'm') {
         _myPos = newMutableVector2;
-      } else if (typeState == 'p') {
+      } else if (readingData.typeState == 'p') {
         _partnerPos = newMutableVector2;
-      } else if (typeState == 'g') {
+      } else if (readingData.typeState == 'g') {
         _myGoalPos = newMutableVector2;
-      } else if (typeState == 'G') {
+      } else if (readingData.typeState == 'G') {
         _enemyGoalPos = newMutableVector2;
       }
     } else {
-      SerialDebug.println("ERROR CATCHED RobotState: unfinished data : '" + xReadingState + " , " + yReadingState + "'");
+      SerialDebug.println("ERROR CATCHED RobotState: unfinished data : '" + readingData.xReadingState + " , " + readingData.yReadingState + "'");
     }
-    typeState = newChar;
-    xReadingState = "";
-    yReadingState = "";
-    writingInXState = true;
+    readingData.reinitWith(newChar);
     return true;
-  } else if (!(typeState == 'b' || typeState == 'm' || typeState == 'p' || typeState == 'g' || typeState == 'G')) {
+  } else if (!(readingData.typeState == 'b' || readingData.typeState == 'm' || readingData.typeState == 'p' || readingData.typeState == 'g' || readingData.typeState == 'G')) {
     SerialDebug.println("ERROR CATCHED RobotState: no typeState tracked");
   } else if (isDigit(newChar) || newChar == '.' || newChar == '-') {
-    if (writingInXState) {
-      xReadingState += newChar;
+    if (readingData.writingInXState) {
+      readingData.xReadingState += newChar;
     } else {
-      yReadingState += newChar;
+      readingData.yReadingState += newChar;
     }
   } else if (newChar == ',') {
-    if (writingInXState) {
-      writingInXState = false;
+    if (readingData.writingInXState) {
+      readingData.writingInXState = false;
     } else {
       SerialDebug.println("ERROR CATCHED RobotState : several characters ','");
-      xReadingState = "";
-      yReadingState = "";
-      writingInXState = true;
-      typeState = 'x';
+      readingData.reinitWith('x');
     }
   } else {
     SerialDebug.println("ERROR CATCHED RobotState : unknown char (skipped) '" + String(int(newChar)) + "'");

@@ -33,10 +33,8 @@ const Motors motors = Motors(
 
 size_t savedIndex = 0;
 
-char typeState = 'x';
-String xReadingState = "";
-String yReadingState = "";
-bool writingInXState = true;
+ReadingData readingData = ReadingData();
+
 int nbLidarPoints = 456;
 
 RobotState currentState = RobotState(

@@ -8,14 +8,14 @@
 class FieldProperties {
  public:
   FieldProperties(
-    float fieldLength,
-    float fieldWidth,
-    float spaceBeforeLineSide,
-    float goalWidth,
-    Vector2 myGoalPos,
-    Vector2 enemyGoalPos,
-    float robotRadius,
-    float ballRadius);
+      float fieldLength,
+      float fieldWidth,
+      float spaceBeforeLineSide,
+      float goalWidth,
+      Vector2 myGoalPos,
+      Vector2 enemyGoalPos,
+      float robotRadius,
+      float ballRadius);
 
   inline float fieldLength() const { return _fieldLength; }
   inline float fieldWidth() const { return _fieldWidth; }
@@ -37,6 +37,20 @@ class FieldProperties {
   const float _ballRadius;
 };
 
+class ReadingData {
+ private:
+  char typeState = 'x';
+  String xReadingState = "";
+  String yReadingState = "";
+  bool writingInXState = true;
+
+  void reinitWith(char newChar);
+
+ public:
+  String toString() const;
+  friend class RobotState;
+};
+
 class RobotState {
  public:
   RobotState(
@@ -46,7 +60,7 @@ class RobotState {
       Vector2 myGoalPos,
       Vector2 enemyGoalPos);
 
-  bool updateFromString(char &typeState, String &xReadingState, String &yReadingState, bool &writingInXState, char newChar);
+  bool updateFromString(ReadingData readingData, char newChar);
 
   inline Vector2 ballPos() const { return _ballPos.toVector2(); }
   inline Vector2 myPos() const { return _myPos.toVector2(); }
