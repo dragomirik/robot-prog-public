@@ -47,5 +47,5 @@
       "cinttypes": "cpp",
       "typeinfo": "cpp"
     },
-    "C_Cpp.errorSquiggles": "disabled"
+    "files.autoSave": "afterDelay"
 }
