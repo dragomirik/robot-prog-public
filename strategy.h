@@ -6,6 +6,24 @@
 #include "states.h"
 #include "utilities.h"
 
+class FutureAction {
+ private:
+  const bool _changeMove;
+  const Vector2 _goToPos;
+  const bool _activeKicker;
+
+ public:
+  FutureAction(
+      Vector2 goToPos,
+      bool activeKicker);
+  FutureAction(
+      bool activeKicker);
+
+  inline bool changeMove() const { return _changeMove; }
+  inline Vector2 goToPos() const { return _goToPos; }
+  inline bool activeKicker() const { return _activeKicker; }
+};
+
 Vector2 chooseStrategy(FieldProperties fP, RobotState cS);
 
 bool leavingField(FieldProperties fP, RobotState cS);
