@@ -54,19 +54,20 @@ Radians Vector2::angle() const {
   return Radians(angle);
 }
 
-Vector2 Vector2::rotate(Radians rad){
-    return Vector2(
-        x() * cos(rad) - y() * sin(rad),
-        x() * sin(rad) + y() * cos(rad))}
+Vector2 Vector2::rotate(Radians rad) {
+  return Vector2(
+      x() * cos(rad) - y() * sin(rad),
+      x() * sin(rad) + y() * cos(rad));
+}
 
 // Transforming a point from (x, y) to (u, v)
 Vector2 Vector2::transformToUV(Vector2 origin, Radians rotationAngle) {
   // Calculate the direction vectors of u and v
-  Vector2 u_dir = rotateVector(Vector2(1, 0), -rotationAngle);  // Rotation of -rotationAngle
-  Vector2 v_dir = rotateVector(Vector2(0, 1), -rotationAngle);  // Rotation of -rotationAngle
+  Vector2 u_dir = Vector2(1, 0).rotate(-rotationAngle);  // Rotation of -rotationAngle
+  Vector2 v_dir = Vector2(0, 1).rotate(-rotationAngle);  // Rotation of -rotationAngle
 
   // Obtain the coordinates of O relative to M (the centre of the rectangle)
-  Vector2 OM = Vector2(O.x() - x(), O.y() - y());
+  Vector2 OM = Vector2(origin.x() - x(), origin.y() - y());
 
   // Project OM onto u and v to obtain the coordinates in the (u, v) frame of reference
   return Vector2(
