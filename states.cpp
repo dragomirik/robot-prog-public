@@ -7,7 +7,6 @@ FieldProperties::FieldProperties(
     float goalWidth,
     Vector2 myGoalPos,
     Vector2 enemyGoalPos,
-    Vector2 noneVect,
     float robotRadius,
     float ballRadius)
     : _fieldLength(fieldLength),
@@ -16,7 +15,6 @@ FieldProperties::FieldProperties(
       _goalWidth(goalWidth),
       _myGoalPos(myGoalPos),
       _enemyGoalPos(enemyGoalPos),
-      _noneVect(noneVect),
       _robotRadius(robotRadius),
       _ballRadius(ballRadius) {}
 

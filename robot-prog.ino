@@ -2,7 +2,7 @@
 #include "movements.h"
 #include "states.h"
 #include "strategy.h"
-#include "lidar_analyzer.h"
+//#include "lidar_analyzer.h"
 #include "utilities.h"
 
 const FieldProperties fieldProperties = FieldProperties(
@@ -12,7 +12,6 @@ const FieldProperties fieldProperties = FieldProperties(
     60,                // goalWidth
     Vector2(0, -115),  // myGoalPos
     Vector2(0, 115),   // enemyGoalPos
-    Vector2(0, 0),     // noneVect
     9,                 // robotRadius
     2                  // ballRadius
 );
