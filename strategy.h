@@ -24,7 +24,7 @@ class FutureAction {
   inline bool activeKicker() const { return _activeKicker; }
 };
 
-Vector2 chooseStrategy(FieldProperties fP, RobotState cS);
+FutureAction chooseStrategy(FieldProperties fP, RobotState cS);
 
 bool leavingField(FieldProperties fP, RobotState cS);
 bool targetInFrontOfRobot(FieldProperties fP, RobotState cS, Vector2 tL);
@@ -36,11 +36,11 @@ bool closeToShoot(FieldProperties fP, RobotState cS, Vector2 gL);
 int getSidePosition(FieldProperties fP, RobotState cS);
 int getBallSidePositionFromRobot(FieldProperties fP, RobotState cS, Vector2 bL);
 
-Vector2 refrainFromLeavingStrategy(FieldProperties fP, RobotState cS);
-Vector2 goToBallStrategy(FieldProperties fP, RobotState cS);
-Vector2 goToBallAvoidingBallStrategy(FieldProperties fP, RobotState cS, Vector2 bL);
-Vector2 accelerateToGoalStrategy(FieldProperties fP, RobotState cS);
-Vector2 slalowingBackwardsStrategy(FieldProperties fP, RobotState cS);
-Vector2 shootStrategy(FieldProperties fP, RobotState cS);
+FutureAction refrainFromLeavingStrategy(FieldProperties fP, RobotState cS);
+FutureAction goToBallStrategy(FieldProperties fP, RobotState cS);
+FutureAction goToBallAvoidingBallStrategy(FieldProperties fP, RobotState cS, Vector2 bL);
+FutureAction accelerateToGoalStrategy(FieldProperties fP, RobotState cS);
+FutureAction slalowingBackwardsStrategy(FieldProperties fP, RobotState cS);
+FutureAction shootStrategy(FieldProperties fP, RobotState cS);
 
 #endif

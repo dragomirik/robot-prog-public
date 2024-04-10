@@ -1,6 +1,5 @@
 #include "strategy.h"
 
-//TODO: change Vector2 with FutureAction
 FutureAction::FutureAction(
     Vector2 goToPos,
     bool activeKicker) : _changeMove(true),
@@ -8,12 +7,12 @@ FutureAction::FutureAction(
                          _activeKicker(activeKicker){};
 FutureAction::FutureAction(
     bool activeKicker) : _changeMove(false),
-                        _goToPos(Vector2(0, 0)),
+                         _goToPos(Vector2(0, 0)),
                          _activeKicker(activeKicker){};
 
+////////
 const int goalMinDistance = 100;
-
-Vector2 chooseStrategy(FieldProperties fP, RobotState cS) {
+FutureAction chooseStrategy(FieldProperties fP, RobotState cS) {
   Vector2 bL = cS.ballPos();
   // Vector2 bL = cS.myPos().distanceRef(cS.ballPos());
   // Vector2 gL = cS.myPos().distanceRef(fP.enemyGoalPos());
@@ -21,7 +20,7 @@ Vector2 chooseStrategy(FieldProperties fP, RobotState cS) {
     return refrainFromLeavingStrategy(fP, cS);
 
   } else if (!ballIsDetected(fP, cS)) {
-    return fP.noneVect();
+    return FutureAction(false);
     // return slalowingBackwardsStrategy(fP, cS);
 
   } else if (ballIsCaught(fP, cS, bL)) {
@@ -90,7 +89,7 @@ int getBallSidePositionFromRobot(FieldProperties fP, RobotState cS, Vector2 bL) 
   }
 }
 
-Vector2 refrainFromLeavingStrategy(FieldProperties fP, RobotState cS) {
+FutureAction refrainFromLeavingStrategy(FieldProperties fP, RobotState cS) {
   SerialDebug.println("refrainFromLeavingStrategy");
   int xDirection = 0;
   int yDirection = 0;
@@ -112,114 +111,144 @@ Vector2 refrainFromLeavingStrategy(FieldProperties fP, RobotState cS) {
     yDirection = -10;
   }
 
-  return Vector2(
-      // cS.myPos().x()+xDirection,
-      // cS.myPos().y()+yDirection
-      xDirection,
-      yDirection);
+  return FutureAction(
+      Vector2(
+          xDirection,
+          yDirection),
+      false);
 }
 
-Vector2 goToBallStrategy(FieldProperties fP, RobotState cS) {
+FutureAction goToBallStrategy(FieldProperties fP, RobotState cS) {
   SerialDebug.println("goToBallStrategy");
-  return Vector2(
-      cS.ballPos().x(),
-      cS.ballPos().y() - fP.robotRadius() * 5);
+  return FutureAction(
+      Vector2(
+          cS.ballPos().x(),
+          cS.ballPos().y() - fP.robotRadius() * 5),
+      false);
 }
 
-Vector2 goToBallAvoidingBallStrategy(FieldProperties fP, RobotState cS, Vector2 bL) {
+FutureAction goToBallAvoidingBallStrategy(FieldProperties fP, RobotState cS, Vector2 bL) {
   int distanceDevitement = fP.robotRadius() * 5;
   if (cS.ballPos().x() < 0) {
     if (getBallSidePositionFromRobot(fP, cS, bL) == -1) {
       SerialDebug.println("full gauche");
-      return Vector2(
-          cS.myPos().x(),
-          cS.myPos().y() - distanceDevitement);
+      return FutureAction(
+          Vector2(
+              cS.myPos().x(),
+              cS.myPos().y() - distanceDevitement),
+          false);
 
     } else if (bL.norm() < distanceDevitement) {
       SerialDebug.println("proche du robot");
-      return Vector2(
-          cS.myPos().x() + distanceDevitement,
-          cS.myPos().y());
+      return FutureAction(
+          Vector2(
+              cS.myPos().x() + distanceDevitement,
+              cS.myPos().y()),
+          false);
 
     } else {
       SerialDebug.println("derriere le robot gauche");
-      return Vector2(
-          cS.myPos().x() + distanceDevitement,
-          cS.myPos().y() - distanceDevitement);
+      return FutureAction(
+          Vector2(
+              cS.myPos().x() + distanceDevitement,
+              cS.myPos().y() - distanceDevitement),
+          false);
     }
 
   } else {
     if (getBallSidePositionFromRobot(fP, cS, bL) == 1) {
       SerialDebug.println("full droite");
-      return Vector2(
-          cS.myPos().x(),
-          cS.myPos().y() - distanceDevitement);
+      return FutureAction(
+          Vector2(
+              cS.myPos().x(),
+              cS.myPos().y() - distanceDevitement),
+          false);
 
     } else if (bL.norm() < distanceDevitement) {
       SerialDebug.println("proche du robot");
-      return Vector2(
-          cS.myPos().x() - distanceDevitement,
-          cS.myPos().y());
+      return FutureAction(
+          Vector2(
+              cS.myPos().x() - distanceDevitement,
+              cS.myPos().y()),
+          false);
 
     } else {
       SerialDebug.println("derriere le robot droite");
-      return Vector2(
-          cS.myPos().x() - distanceDevitement,
-          cS.myPos().y() - distanceDevitement);
+      return FutureAction(
+          Vector2(
+              cS.myPos().x() - distanceDevitement,
+              cS.myPos().y() - distanceDevitement),
+          false);
     }
   }
 }
 
-Vector2 accelerateToGoalStrategy(FieldProperties fP, RobotState cS) {
+FutureAction accelerateToGoalStrategy(FieldProperties fP, RobotState cS) {
   SerialDebug.println("accelerateToGoalStrategy");
-  return Vector2(
-      fP.enemyGoalPos().x(),
-      fP.enemyGoalPos().y() + 15);
+  return FutureAction(
+      Vector2(
+          fP.enemyGoalPos().x(),
+          fP.enemyGoalPos().y() + 15),
+      false);
   // return cS.enemyGoalPos();
 }
 
-Vector2 slalowingBackwardsStrategy(FieldProperties fP, RobotState cS) {
+FutureAction slalowingBackwardsStrategy(FieldProperties fP, RobotState cS) {
   SerialDebug.println("slalowingBackwardsStrategy");
   if (cS.myPos().y() < -70) {
     if (cS.myPos().x() < -5) {
-      return Vector2(
-          cS.myPos().x() + 10,
-          cS.myPos().y());
+      return FutureAction(
+          Vector2(
+              cS.myPos().x() + 10,
+              cS.myPos().y()),
+          false);
     } else if (5 < cS.myPos().x()) {
-      return Vector2(
-          cS.myPos().x() - 10,
-          cS.myPos().y());
+      return FutureAction(
+          Vector2(
+              cS.myPos().x() - 10,
+              cS.myPos().y()),
+          false);
     } else {
-      return Vector2(
-          cS.myPos().x(),
-          cS.myPos().y() + 10);
+      return FutureAction(
+          Vector2(
+              cS.myPos().x(),
+              cS.myPos().y() + 10),
+          false);
     }
 
   } else if (50 < cS.myPos().y()) {
-    return Vector2(
-        cS.myPos().x() - 20,
-        cS.myPos().y() - 10);
+    return FutureAction(
+        Vector2(
+            cS.myPos().x() - 20,
+            cS.myPos().y() - 10),
+        false);
 
   } else {
     if (cS.myPos().x() < -fP.fieldWidth() / 6) {
-      return Vector2(
-          cS.myPos().x() + 20,
-          cS.myPos().y() - 10);
+      return FutureAction(
+          Vector2(
+              cS.myPos().x() + 20,
+              cS.myPos().y() - 10),
+          false);
     } else if (fP.fieldWidth() / 6 < cS.myPos().x()) {
-      return Vector2(
-          cS.myPos().x() - 20,
-          cS.myPos().y() - 10);
+      return FutureAction(
+          Vector2(
+              cS.myPos().x() - 20,
+              cS.myPos().y() - 10),
+          false);
     } else {
       // On ne change pas la direction du robot (ajouter une condition pour ne rien changer si noneVect est renvoyé)
-      return fP.noneVect();
+      return FutureAction(false);
     }
   }
 }
 
-Vector2 shootStrategy(FieldProperties fP, RobotState cS) {
+FutureAction shootStrategy(FieldProperties fP, RobotState cS) {
   SerialDebug.println("shootStrategy");
   // digitalWrite(KICKER, HIGH);
   // sleep(0.01);
   // digitalWrite(KICKER, LOW);
-  return Vector2(0, 20);
+  return FutureAction(
+      Vector2(0, 20),
+      true);
 }
