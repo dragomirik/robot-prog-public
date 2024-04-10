@@ -1,5 +1,6 @@
 #include "strategy.h"
 
+//TODO: change Vector2 with FutureAction
 FutureAction::FutureAction(
     Vector2 goToPos,
     bool activeKicker) : _changeMove(true),
