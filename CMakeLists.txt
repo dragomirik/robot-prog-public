@@ -14,8 +14,14 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-file(GLOB TEST_SOURCES "test/*.cpp")
-add_executable(test1 ${TEST_SOURCES})
+# faking Arduino.h
+include_directories(./test/faking/)
+add_executable(Arduino ./test/faking/Arduino.cpp)
+target_include_directories(Arduino PUBLIC ./test/faking)
 
-target_link_libraries(test1 gtest_main)
-add_test(NAME example_test COMMAND test1)
+# include own test files
+file(GLOB TEST_SOURCES "test/*.cpp")
+add_executable(unitTest ${TEST_SOURCES})
+
+target_link_libraries(unitTest gtest_main)
+add_test(NAME example_test COMMAND unitTest)
