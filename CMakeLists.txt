@@ -16,12 +16,12 @@ FetchContent_MakeAvailable(googletest)
 
 # faking Arduino.h
 include_directories(./test/faking/)
-add_executable(Arduino ./test/faking/Arduino.cpp)
+add_library(Arduino STATIC ./test/faking/Arduino.cpp)
 target_include_directories(Arduino PUBLIC ./test/faking)
 
 # include own test files
 file(GLOB TEST_SOURCES "test/*.cpp")
 add_executable(unitTest ${TEST_SOURCES})
 
-target_link_libraries(unitTest gtest_main)
+target_link_libraries(unitTest gtest_main Arduino)
 add_test(NAME example_test COMMAND unitTest)
