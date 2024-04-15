@@ -19,13 +19,3 @@ add_executable(test1 ${TEST_SOURCES})
 
 target_link_libraries(test1 gtest_main)
 add_test(NAME example_test COMMAND test1)
-
-# message(STATUS "Fichiers sources liés à la cible test1:")
-# foreach(source ${TEST_SOURCES_LIST})
-#     message(STATUS "   ${source}")
-# endforeach()
-
-# message(STATUS "Répertoires d'inclusion liés à la cible test1:")
-# foreach(include_dir ${TEST_INCLUDES_LIST})
-#     message(STATUS "   ${include_dir}")
-# endforeach()
