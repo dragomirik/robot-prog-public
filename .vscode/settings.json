@@ -47,5 +47,6 @@
       "cinttypes": "cpp",
       "typeinfo": "cpp"
     },
-    "files.autoSave": "afterDelay"
+    "files.autoSave": "afterDelay",
+    "cmake.configureOnOpen": true
 }
