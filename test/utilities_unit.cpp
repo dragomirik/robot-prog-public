@@ -1,5 +1,4 @@
 #include <gtest/gtest.h>
-using ::testing::MatchesRegex;
 
 #include "../src/utilities.h"
 
