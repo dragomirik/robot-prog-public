@@ -91,7 +91,7 @@ Vector2 MutableVector2::toVector2() const {
 ///////DEGREES AND RADIANS
 
 Degree::Degree(float angle) : _angle(angle) {}
-Degree::Degree(Radians angle) : _angle(angle * 180 / PI) {}
+Degree::Degree(Radians angle) : _angle(angle * RAD_TO_DEG) {}
 
 Radians::Radians(float angle) : _angle(angle) {}
-Radians::Radians(Degree angle) : _angle(angle * PI / 180) {}
+Radians::Radians(Degree angle) : _angle(angle * DEG_TO_RAD) {}
