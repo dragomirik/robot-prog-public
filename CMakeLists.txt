@@ -20,8 +20,8 @@ add_library(Arduino STATIC ./test/faking/Arduino.cpp)
 target_include_directories(Arduino PUBLIC ./test/faking)
 
 # include own test files
-file(GLOB TEST_SOURCES "test/*.cpp")
-add_executable(unitTest ${TEST_SOURCES} ./src/utilities.cpp)
+file(GLOB TEST_SOURCES "test/*_unit.cpp")
+add_executable(unitTest ${TEST_SOURCES} ./src/utilities.cpp ./src/states.cpp)
 
 target_link_libraries(unitTest gtest_main Arduino)
 add_test(NAME example_test COMMAND unitTest)
