@@ -191,3 +191,69 @@ TEST(fakeArduino, serialClassReadWhenNotDebugAvailable) {
   SerialClass serial = SerialClass();
   ASSERT_EQ(serial.debugRead(), -1);
 }
+
+TEST(fakeArduino, PinsClassInRange) {
+  PinsClass debugPins(10);
+  ASSERT_TRUE(debugPins.inRange(0));
+  ASSERT_TRUE(debugPins.inRange(3));
+  ASSERT_TRUE(debugPins.inRange(9));
+}
+
+TEST(fakeArduino, PinsClassNotInRange) {
+  PinsClass debugPins(10);
+  ASSERT_FALSE(debugPins.inRange(-1));
+  ASSERT_FALSE(debugPins.inRange(10));
+  ASSERT_FALSE(debugPins.inRange(25));
+}
+
+TEST(fakeArduino, PinsClassAssertInRange) {
+  PinsClass debugPins(10);
+  EXPECT_NO_THROW(debugPins.assertInRange(7));
+  EXPECT_THROW(debugPins.assertInRange(-1), std::invalid_argument);
+  EXPECT_THROW(debugPins.assertInRange(10), std::invalid_argument);
+}
+
+TEST(fakeArduino, PinsClassGetPinState) {
+  PinsClass debugPins(10);
+  debugPins.pinMode(1, PinState::pINPUT);
+  debugPins.pinMode(3, PinState::pOUPUT);
+  ASSERT_EQ(debugPins.getPinState(1), PinState::pINPUT);
+  ASSERT_EQ(debugPins.getPinState(3), PinState::pOUPUT);
+  ASSERT_EQ(debugPins.getPinState(5), PinState::pUNDEF);
+}
+
+TEST(fakeArduino, PinsClassAssertIsOfType) {
+  PinsClass debugPins(10);
+  debugPins.pinMode(1, PinState::pINPUT);
+  debugPins.pinMode(3, PinState::pOUPUT);
+  EXPECT_NO_THROW(debugPins.assertIsOfState(1, PinState::pINPUT));
+  EXPECT_NO_THROW(debugPins.assertIsOfState(2, PinState::pUNDEF));
+  EXPECT_NO_THROW(debugPins.assertIsOfState(3, PinState::pOUPUT));
+  EXPECT_THROW(debugPins.assertIsOfState(1, PinState::pOUPUT), std::invalid_argument);
+  EXPECT_THROW(debugPins.assertIsOfState(2, PinState::pINPUT), std::invalid_argument);
+  EXPECT_THROW(debugPins.assertIsOfState(3, PinState::pUNDEF), std::invalid_argument);
+  EXPECT_THROW(debugPins.assertIsOfState(3, PinState::pINPUT), std::invalid_argument);
+  EXPECT_THROW(debugPins.assertIsOfState(-1, PinState::pINPUT), std::invalid_argument);
+}
+
+TEST(fakeArduino, PinsClassTnvalidDebugReadWrite) {
+  PinsClass debugPins(10);
+  ASSERT_THROW(debugPins.debugRead(-1), std::invalid_argument);
+  ASSERT_THROW(debugPins.debugWrite(-1, 266), std::invalid_argument);
+  ASSERT_THROW(debugPins.debugRead(10), std::invalid_argument);
+  ASSERT_THROW(debugPins.debugWrite(10, 266), std::invalid_argument);
+}
+
+TEST(fakeArduino, PinsClassAnalogReadWrite) {
+  PinsClass debugPins(10);
+  debugPins.pinMode(1, PinState::pINPUT);
+  debugPins.pinMode(2, PinState::pOUPUT);
+  debugPins.debugWrite(1, 255);
+  debugPins.analogWrite(2, 155);
+  ASSERT_EQ(debugPins.analogRead(1), 255);
+  ASSERT_EQ(debugPins.debugRead(2), 155);
+  ASSERT_EQ(debugPins.analogRead(3), 0);
+  ASSERT_EQ(debugPins.debugRead(3), 0);
+  ASSERT_THROW(debugPins.analogRead(-1), std::invalid_argument);
+  ASSERT_THROW(debugPins.analogWrite(-1, 266), std::invalid_argument);
+}

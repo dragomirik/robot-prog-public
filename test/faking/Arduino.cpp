@@ -89,3 +89,92 @@ void SerialClass::debugPrintln(const std::string& str) {
   }
   debugWrite('\n');
 }
+
+PinsClass::PinsClass(int numPins) : pinsMode(numPins, PinState::pUNDEF), pinsValue(numPins, 0) {}
+
+bool PinsClass::inRange(int pin) {
+  return pin >= 0 && pin < pinsMode.size();
+}
+
+void PinsClass::assertInRange(int pin) {
+  if (!inRange(pin)) {
+    throw std::invalid_argument("pin number out of range");
+  }
+}
+
+PinState PinsClass::getPinState(int pin) {
+  assertInRange(pin);
+  return pinsMode[pin];
+}
+
+void PinsClass::assertIsOfState(int pin, PinState wantedPinState) {
+  assertInRange(pin);
+  if (getPinState(pin) != wantedPinState) {
+    throw std::invalid_argument("pin wrong state");
+  }
+}
+
+void PinsClass::pinMode(int pin, PinState pinState) {
+  if (pinState == PinState::pUNDEF) {
+    throw std::invalid_argument("cannot set a pin to UNDEF");
+  }
+  assertInRange(pin);
+  assertIsOfState(pin, PinState::pUNDEF);
+  pinsMode[pin] = pinState;
+}
+
+void PinsClass::analogWrite(int pin, int value) {
+  assertInRange(pin);
+  assertIsOfState(pin, PinState::pOUPUT);
+  pinsValue[pin] = value;
+}
+
+void PinsClass::digitalWrite(int pin, int value) {
+  if (value == HIGH || value == LOW) {
+    (*this).analogWrite(pin, value);
+  } else {
+    throw std::invalid_argument("wrong value for digitalWrite");
+  }
+}
+
+int PinsClass::analogRead(int pin) {
+  assertInRange(pin);
+  assertIsOfState(pin, PinState::pINPUT);
+  return pinsValue[pin];
+}
+
+int PinsClass::digitalRead(int pin) {
+  int value = (*this).analogRead(pin);
+  if (value == HIGH || value == LOW) {
+    return value;
+  } else {
+    throw std::invalid_argument("non-digital value on this pin");
+  }
+}
+
+void PinsClass::debugWrite(int pin, int value) {
+  assertInRange(pin);
+  assertIsOfState(pin, PinState::pINPUT);
+  pinsValue[pin] = value;
+}
+
+int PinsClass::debugRead(int pin) {
+  assertInRange(pin);
+  assertIsOfState(pin, PinState::pOUPUT);
+  return pinsValue[pin];
+}
+
+PinsClass fakeArduinoPins(41);
+void pinMode(int pin, int pinState) {
+  if (pinState == INPUT) {
+    fakeArduinoPins.pinMode(pin, PinState::pINPUT);
+  } else if (pinState == OUTPUT) {
+    fakeArduinoPins.pinMode(pin, PinState::pOUPUT);
+  } else {
+    throw std::invalid_argument("wrong pinState");
+  }
+}
+void analogWrite(int pin, int value) { fakeArduinoPins.analogWrite(pin, value); }
+void digitalWrite(int pin, int value) { fakeArduinoPins.digitalWrite(pin, value); }
+int analogRead(int pin, int value) { return fakeArduinoPins.analogRead(pin); }
+int digitalRead(int pin) { return fakeArduinoPins.digitalRead(pin); }
