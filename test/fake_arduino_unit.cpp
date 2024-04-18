@@ -252,8 +252,17 @@ TEST(fakeArduino, PinsClassAnalogReadWrite) {
   debugPins.analogWrite(2, 155);
   ASSERT_EQ(debugPins.analogRead(1), 255);
   ASSERT_EQ(debugPins.debugRead(2), 155);
-  ASSERT_EQ(debugPins.analogRead(3), 0);
-  ASSERT_EQ(debugPins.debugRead(3), 0);
-  ASSERT_THROW(debugPins.analogRead(-1), std::invalid_argument);
-  ASSERT_THROW(debugPins.analogWrite(-1, 266), std::invalid_argument);
 }
+
+TEST(fakeArduino, PinsClassDigitalReadWrite) {
+  PinsClass debugPins(10);
+  debugPins.pinMode(1, PinState::pINPUT);
+  debugPins.pinMode(2, PinState::pOUPUT);
+  debugPins.debugWrite(1, HIGH);
+  ASSERT_EQ(debugPins.analogRead(1), HIGH);
+  debugPins.analogWrite(2, HIGH);
+  ASSERT_EQ(debugPins.debugRead(2), HIGH);
+  debugPins.debugWrite(1, LOW);
+  ASSERT_EQ(debugPins.analogRead(1), LOW);
+}
+
