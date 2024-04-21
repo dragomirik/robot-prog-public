@@ -99,15 +99,17 @@ void loop() {
   RobotInfos infos;
   double nearestWallDistance = 0;
 
+  // testsLidar(fieldProperties); // tests du LIDAR
+  
   if(fmod(counter, 30) == 0) {
     counter = 0;
-    infos = getFieldInfos(true, false);
+    infos = getFieldInfos(fieldProperties, true, true);
     if(infos.nearestWall_distance > 0) {
       nearestWallDistance = infos.nearestWall_distance;
     }
-    SerialDebug.println("orientation=" + String(infos.orientation) + " rad (" + String(infos.orientation * (180.0 / M_PI)) 
-      + "°), Front Wall distance=" + String(infos.frontWall_distance / 10.0) 
-      + " cm, Nearest Wall distance=" + String(infos.nearestWall_distance / 10.0) + " cm");
+    SerialDebug.println("Coordonnées robot: x=" + String(infos.coordinates.x / 10.0) + " cm, y=" + String(infos.coordinates.y / 10.0)
+      + " cm, orientation: " + String(infos.getOrientation()) + "°, Nearest Wall distance=" 
+      + String(infos.nearestWall_distance / 10.0) + " cm");
   }
 
   if (SerialCam.available()) {
