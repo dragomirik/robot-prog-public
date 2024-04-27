@@ -1,5 +1,5 @@
-#ifndef LIDAR_ANALYZER
-#define LIDAR_ANALYZER
+#ifndef LIDAR_ANALYZER_H
+#define LIDAR_ANALYZER_H
 
 #include <Arduino.h>
 #include "utilities.h"
@@ -32,7 +32,7 @@ class RobotInfos {
   /* Retourne le point du mur le plus proche */
   MutableVector2 getNearestWall() {
     if (walls.empty()) {
-      return MutableVector2({-9999, -9999});
+      return MutableVector2(-9999, -9999);
     }
 
     float nearest = 100000;
@@ -53,7 +53,7 @@ class RobotInfos {
     std::vector<MutableVector2> walls;
 };
 
-RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool show_log = false, const char* input = nullptr);
+RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar, bool show_log, const char* input);
 void testsLidar(FieldProperties fP);
 
 #endif

@@ -227,7 +227,7 @@ RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool sho
 
   if(show_log) {
     full_log += "** CARTESIAN points: ";
-    for (size_t i = 0; i < nb_points; i++) {
+    for (int i = 0; i < nb_points; i++) {
       MutableVector2 point = points_cart[i];
       full_log += "(" + String(point.x()) + "," + String(point.y()) + ");";
     }

@@ -67,7 +67,7 @@ void loop() {
   
   if(fmod(counter, 30) == 0) {
     counter = 0;
-    RobotInfos infos = getFieldInfos(fieldProperties, true, true);
+    RobotInfos infos = getFieldInfos(fieldProperties, true, true, nullptr);
     SerialDebug.println("Coordonnées robot: x=" + String(infos.getCoordinates().x() / 10.0) + " cm, y=" + String(infos.getCoordinates().y() / 10.0)
       + " cm, orientation: " + String(infos.getOrientation()) + "°, Nearest Wall distance=" 
       + String(infos.getNearestWall().toVector2().distance({0,0}) / 10.0) + " cm");
