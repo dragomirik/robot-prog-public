@@ -81,6 +81,9 @@ Vector2 Vector2::transformToUV(Vector2 origin, Radians rotationAngle) {
 MutableVector2::MutableVector2(Vector2 vector2)
     : _x(vector2.x()), _y(vector2.y()) {}
 
+MutableVector2::MutableVector2(float x, float y)
+    : _x(x), _y(y) {}
+
 String MutableVector2::toString() const {
   return "(Mutable," + String(_x) + ", " + String(_y) + ")";
 }

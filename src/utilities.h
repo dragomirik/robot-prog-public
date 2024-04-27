@@ -39,6 +39,7 @@ class Vector2 {
 class MutableVector2 {
  public:
   MutableVector2(Vector2 vector2);
+  MutableVector2(float x, float y);
 
   inline float x() const { return _x; }
   inline float y() const { return _y; }
