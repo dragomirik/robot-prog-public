@@ -101,6 +101,16 @@ void SerialClass::debugPrintln(const String& str) {
   debugWrite('\n');
 }
 
+bool SerialClass::find(String str) {
+  //unsupported yet
+  throw std::exception();
+}
+
+byte SerialClass::readBytes(byte *buffer, int length) {
+  //unsupported yet
+  throw std::exception();
+}
+
 PinsClass::PinsClass(int numPins) : pinsMode(numPins, PinState::pUNDEF), pinsValue(numPins, 0) {}
 
 bool PinsClass::inRange(int pin) {

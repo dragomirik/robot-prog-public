@@ -55,6 +55,8 @@ class SerialClass {
   bool debugAvailable();
   void debugPrint(const String& str);
   void debugPrintln(const String& str);
+  bool find(String str);
+  byte readBytes(byte *buffer, int length);
 };
 
 extern SerialClass Serial;
