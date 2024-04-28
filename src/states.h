@@ -39,16 +39,23 @@ class FieldProperties {
 
 class ReadingData {
  private:
-  char typeState = 'x';
-  String xReadingState = "";
-  String yReadingState = "";
-  bool writingInXState = true;
-
-  void reinitWith(char newChar);
+  char _typeState = 'x';
+  String _xReadingState = "";
+  String _yReadingState = "";
+  bool _writingInXState = true;
 
  public:
+  ReadingData();
   String toString() const;
-  friend class RobotState;
+  
+  inline char typeState() const { return _typeState; }
+  inline String xReadingState() const { return _xReadingState; }
+  inline String yReadingState() const { return _yReadingState; }
+  inline bool writingInXState() const { return _writingInXState; }
+
+  void nowWriteInYState();
+  void addToActiveReadingState(char newChar);
+  void reinitWith(char newChar);
 };
 
 class RobotState {

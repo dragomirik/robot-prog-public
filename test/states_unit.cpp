@@ -38,7 +38,6 @@ TEST(RobotState, accessData) {
   ASSERT_EQ(cS.enemyGoalPos(), Vector2(5, 5));
 }
 
-/*
 TEST(ReadingData, accessData) {
   ReadingData rD;
   ASSERT_EQ(rD.typeState(), 'x');
@@ -49,28 +48,24 @@ TEST(ReadingData, accessData) {
 
 TEST(ReadingData, verifyAction) {
   ReadingData rD;
-  char car = 'a';
-  rD.reinitWith(car);
-  ASSERT_EQ(rD.typeState(), car);
+  rD.addToActiveReadingState('a');
+  rD.addToActiveReadingState('b');
+  rD.reinitWith('e');
+  ASSERT_EQ(rD.typeState(), 'e');
   ASSERT_EQ(rD.xReadingState(), "");
   ASSERT_EQ(rD.yReadingState(), "");
   ASSERT_EQ(rD.writingInXState(), true);
 }
 
-TEST(ReadingData, verifyAction) {
+TEST(ReadingData, toString) {
   ReadingData rD;
-
   std::string str = rD.toString();
-
   size_t typeState = str.find(rD.typeState());
   ASSERT_TRUE(typeState != std::string::npos);
-
   size_t xReadingState = str.find(rD.xReadingState());
   ASSERT_TRUE(xReadingState != std::string::npos);
-
   size_t yReadingState = str.find(rD.yReadingState());
   ASSERT_TRUE(yReadingState != std::string::npos);
-
   size_t writingInXState = str.find(rD.writingInXState());
   ASSERT_TRUE(writingInXState != std::string::npos);
-}*/
+}
