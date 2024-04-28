@@ -31,6 +31,9 @@ String::String() : std::string() {}
 String::String(const char* s) : std::string(s) {}
 String::String(const std::string& s) : std::string(s) {}
 String::String(double s) : std::string(_removeZeros(std::to_string(s))) {}
+String::String(uint16_t s) : std::string(_removeZeros(std::to_string(s))) {}
+String::String(int s) : std::string(_removeZeros(std::to_string(s))) {}
+String::String(size_t s) : std::string(_removeZeros(std::to_string(s))) {}
 
 float String::toFloat() {
   return std::stof(*this);
@@ -76,17 +79,25 @@ void SerialClass::debugWrite(char data) {
   _incomingData.push(data);
 }
 
-void SerialClass::println(const std::string& str) {
+void SerialClass::print(const String& str) {
   for (char c : str) {
     write(c);
   }
+}
+
+void SerialClass::println(const String& str) {
+  print(str);
   write('\n');
 }
 
-void SerialClass::debugPrintln(const std::string& str) {
+void SerialClass::debugPrint(const String& str) {
   for (char c : str) {
     debugWrite(c);
   }
+}
+
+void SerialClass::debugPrintln(const String& str) {
+  debugPrint(str);
   debugWrite('\n');
 }
 

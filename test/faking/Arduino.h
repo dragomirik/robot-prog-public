@@ -19,6 +19,7 @@
 #define sqrt std::sqrt
 #define isDigit std::isdigit
 #define max std::max
+typedef uint8_t byte;
 
 double sq(double x);
 
@@ -29,6 +30,9 @@ class String : public std::string {
   String(const char* s);
   String(const std::string& s);
   String(double s);
+  String(uint16_t s);
+  String(int s);
+  String(size_t s);
 
   float toFloat();
 };
@@ -44,11 +48,13 @@ class SerialClass {
   char read();
   void write(char data);
   bool available();
-  void println(const std::string& str);
+  void print(const String& str);
+  void println(const String& str);
   char debugRead();
   void debugWrite(char data);
   bool debugAvailable();
-  void debugPrintln(const std::string& str);
+  void debugPrint(const String& str);
+  void debugPrintln(const String& str);
 };
 
 extern SerialClass Serial;

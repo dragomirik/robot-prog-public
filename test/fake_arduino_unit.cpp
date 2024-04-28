@@ -128,12 +128,12 @@ TEST(fakeArduino, serialClassMultipleReadWrite) {
   ASSERT_EQ(serial.debugRead(), 't');
 }
 
-TEST(fakeArduino, serialClassPrintln) {
+TEST(fakeArduino, serialClassPrint) {
   SerialClass serial = SerialClass();
   serial.println("tes");
   serial.debugPrintln("df");
   serial.write('t');
-  serial.debugPrintln("gh");
+  serial.debugPrint("gh");
   ASSERT_EQ(serial.read(), 'd');
   ASSERT_EQ(serial.debugRead(), 't');
   ASSERT_EQ(serial.debugRead(), 'e');
@@ -142,7 +142,7 @@ TEST(fakeArduino, serialClassPrintln) {
   ASSERT_EQ(serial.read(), 'g');
   ASSERT_EQ(serial.debugRead(), 's');
   ASSERT_EQ(serial.read(), 'h');
-  ASSERT_EQ(serial.debugRead(), '\n');
+  ASSERT_NE(serial.debugRead(), '\n');
   ASSERT_EQ(serial.debugRead(), 't');
 }
 
