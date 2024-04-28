@@ -84,21 +84,31 @@ TEST(RobotState, accessData) {
 
 TEST(RobotState, toString) {
   RobotState cS = RobotState(
-    Vector2(1, 1),
-    Vector2(2, 2),
-    Vector2(3, 3),
-    Vector2(4, 4),
-    Vector2(5, 5)
+    Vector2(1, 1.5),
+    Vector2(2, 2.5),
+    Vector2(3, 3.5),
+    Vector2(4, 4.5),
+    Vector2(5, 5.5)
   );
   std::string str = cS.toString();
-  size_t ballPos = str.find(cS.ballPos().toString());
-  ASSERT_TRUE(ballPos != std::string::npos);
-  size_t myPos = str.find(cS.myPos().toString());
-  ASSERT_TRUE(myPos != std::string::npos);
-  size_t partnerPos = str.find(cS.partnerPos().toString());
-  ASSERT_TRUE(partnerPos != std::string::npos);
-  size_t myGoalPos = str.find(cS.myGoalPos().toString());
-  ASSERT_TRUE(myGoalPos != std::string::npos);
-  size_t enemyGoalPos = str.find(cS.enemyGoalPos().toString());
-  ASSERT_TRUE(enemyGoalPos != std::string::npos);
+  size_t ballPosX = str.find(String(cS.ballPos().x()));
+  ASSERT_TRUE(ballPosX != std::string::npos);
+  size_t myPosX = str.find(String(cS.myPos().x()));
+  ASSERT_TRUE(myPosX != std::string::npos);
+  size_t partnerPosX = str.find(String(cS.partnerPos().x()));
+  ASSERT_TRUE(partnerPosX != std::string::npos);
+  size_t myGoalPosX = str.find(String(cS.myGoalPos().x()));
+  ASSERT_TRUE(myGoalPosX != std::string::npos);
+  size_t enemyGoalPosX = str.find(String(cS.enemyGoalPos().x()));
+  ASSERT_TRUE(enemyGoalPosX != std::string::npos);
+  size_t ballPosY = str.find(String(cS.ballPos().y()));
+  ASSERT_TRUE(ballPosY != std::string::npos);
+  size_t myPosY = str.find(String(cS.myPos().y()));
+  ASSERT_TRUE(myPosY != std::string::npos);
+  size_t partnerPosY = str.find(String(cS.partnerPos().y()));
+  ASSERT_TRUE(partnerPosY != std::string::npos);
+  size_t myGoalPosY = str.find(String(cS.myGoalPos().y()));
+  ASSERT_TRUE(myGoalPosY != std::string::npos);
+  size_t enemyGoalPosY = str.find(String(cS.enemyGoalPos().y()));
+  ASSERT_TRUE(enemyGoalPosY != std::string::npos);
 }
