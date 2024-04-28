@@ -81,3 +81,24 @@ TEST(RobotState, accessData) {
   ASSERT_EQ(cS.myGoalPos(), Vector2(4, 4));
   ASSERT_EQ(cS.enemyGoalPos(), Vector2(5, 5));
 }
+
+TEST(RobotState, toString) {
+  RobotState cS = RobotState(
+    Vector2(1, 1),
+    Vector2(2, 2),
+    Vector2(3, 3),
+    Vector2(4, 4),
+    Vector2(5, 5)
+  );
+  std::string str = cS.toString();
+  size_t ballPos = str.find(cS.ballPos().toString());
+  ASSERT_TRUE(ballPos != std::string::npos);
+  size_t myPos = str.find(cS.myPos().toString());
+  ASSERT_TRUE(myPos != std::string::npos);
+  size_t partnerPos = str.find(cS.partnerPos().toString());
+  ASSERT_TRUE(partnerPos != std::string::npos);
+  size_t myGoalPos = str.find(cS.myGoalPos().toString());
+  ASSERT_TRUE(myGoalPos != std::string::npos);
+  size_t enemyGoalPos = str.find(cS.enemyGoalPos().toString());
+  ASSERT_TRUE(enemyGoalPos != std::string::npos);
+}
