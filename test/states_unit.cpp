@@ -23,21 +23,6 @@ TEST(FieldProperties, accessData) {
   ASSERT_EQ(fP.ballRadius(), 8);
 }
 
-TEST(RobotState, accessData) {
-  RobotState cS = RobotState(
-    Vector2(1, 1),
-    Vector2(2, 2),
-    Vector2(3, 3),
-    Vector2(4, 4),
-    Vector2(5, 5)
-  );
-  ASSERT_EQ(cS.ballPos(), Vector2(1, 1));
-  ASSERT_EQ(cS.myPos(), Vector2(2, 2));
-  ASSERT_EQ(cS.partnerPos(), Vector2(3, 3));
-  ASSERT_EQ(cS.myGoalPos(), Vector2(4, 4));
-  ASSERT_EQ(cS.enemyGoalPos(), Vector2(5, 5));
-}
-
 TEST(ReadingData, accessData) {
   ReadingData rD;
   ASSERT_EQ(rD.typeState(), 'x');
@@ -46,7 +31,7 @@ TEST(ReadingData, accessData) {
   ASSERT_EQ(rD.writingInXState(), true);
 }
 
-TEST(ReadingData, verifyAction) {
+TEST(ReadingData, reinitWith) {
   ReadingData rD;
   rD.addToActiveReadingState('a');
   rD.addToActiveReadingState('b');
@@ -68,4 +53,31 @@ TEST(ReadingData, toString) {
   ASSERT_TRUE(yReadingState != std::string::npos);
   size_t writingInXState = str.find(rD.writingInXState());
   ASSERT_TRUE(writingInXState != std::string::npos);
+}
+
+TEST(ReadingData, writinginXY) {
+  ReadingData rD;
+  rD.addToActiveReadingState('a');
+  rD.addToActiveReadingState('b');
+  ASSERT_EQ(rD.xReadingState(), "ab");
+  rD.nowWriteInYState();
+  rD.addToActiveReadingState('c');
+  rD.addToActiveReadingState('d');
+  ASSERT_EQ(rD.xReadingState(), "ab");
+  ASSERT_EQ(rD.yReadingState(), "cd");
+}
+
+TEST(RobotState, accessData) {
+  RobotState cS = RobotState(
+    Vector2(1, 1),
+    Vector2(2, 2),
+    Vector2(3, 3),
+    Vector2(4, 4),
+    Vector2(5, 5)
+  );
+  ASSERT_EQ(cS.ballPos(), Vector2(1, 1));
+  ASSERT_EQ(cS.myPos(), Vector2(2, 2));
+  ASSERT_EQ(cS.partnerPos(), Vector2(3, 3));
+  ASSERT_EQ(cS.myGoalPos(), Vector2(4, 4));
+  ASSERT_EQ(cS.enemyGoalPos(), Vector2(5, 5));
 }

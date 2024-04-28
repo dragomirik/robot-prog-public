@@ -75,7 +75,6 @@ class RobotState {
   inline Vector2 myGoalPos() const { return _myGoalPos.toVector2(); }
   inline Vector2 enemyGoalPos() const { return _enemyGoalPos.toVector2(); }
 
-  double nearestWallDistance;
   String toString() const;
 
  private:
