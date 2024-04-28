@@ -84,4 +84,34 @@ class Radians {
   inline operator float() const { return _angle; }
 };
 
+template <typename T>
+class ResultOrError {
+ private:
+  T _value;
+  const String _errorMessage;
+  const bool _isError;
+
+ public:
+  ResultOrError(T value): _value(value), _isError(false) {}
+  ResultOrError(String errorMessage): _errorMessage(errorMessage), _isError(true) {}
+
+  inline bool hasError() const { return _isError; };
+  inline T value() const { return _value; };
+  String errorMessage() const { return _errorMessage; };
+};
+
+template <typename T>
+class Optional {
+ private:
+  T _value;
+  const bool _hasValue;
+
+ public:
+  Optional(): _hasValue(false) {}
+  Optional(T value): _value(value), _hasValue(true) {}
+
+  inline bool hasValue() const { return _hasValue; }
+  inline T value() const { return _value; }
+};
+
 #endif

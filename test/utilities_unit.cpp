@@ -183,3 +183,26 @@ TEST(DegreeRadians, radiansFromDegreeRound) {
 }
 
 //TODO tests with functions
+
+TEST(ResultOrErrorOptional, ResultOrErrorValue) {
+  ResultOrError<int> r(5);
+  ASSERT_FALSE(r.hasError());
+  ASSERT_EQ(r.value(), 5);
+} 
+
+TEST(ResultOrErrorOptional, ResultOrErrorError) {
+  ResultOrError<int> r("error");
+  ASSERT_TRUE(r.hasError());
+  ASSERT_EQ(r.errorMessage(), "error");
+}
+
+TEST(ResultOrErrorOptional, OptionalValue) {
+  Optional<int> r(5);
+  ASSERT_TRUE(r.hasValue());
+  ASSERT_EQ(r.value(), 5);
+} 
+
+TEST(ResultOrErrorOptional, OptionalNoValue) {
+  Optional<int> r;
+  ASSERT_FALSE(r.hasValue());
+}

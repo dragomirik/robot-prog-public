@@ -107,8 +107,8 @@ bool RobotState::updateFromString(ReadingData readingData, char newChar) {
     } else {
       SerialDebug.println("ERROR CATCHED RobotState : unknown char (skipped) '" + String(int(newChar)) + "'");
     }
-    return false;
   }
+  return false;
 }
 
 String RobotState::toString() const {
