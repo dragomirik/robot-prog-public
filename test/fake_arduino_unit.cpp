@@ -142,7 +142,8 @@ TEST(fakeArduino, serialClassPrint) {
   ASSERT_EQ(serial.read(), 'g');
   ASSERT_EQ(serial.debugRead(), 's');
   ASSERT_EQ(serial.read(), 'h');
-  ASSERT_NE(serial.debugRead(), '\n');
+  ASSERT_NE(serial.read(), '\n');
+  ASSERT_EQ(serial.debugRead(), '\n');
   ASSERT_EQ(serial.debugRead(), 't');
 }
 
