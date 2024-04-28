@@ -1,152 +1,148 @@
-#include "lidar_analyzer.h"
 #include "lidar.h"
+#include "lidar_analyzer.h"
 #include "strategy.h"
 
-const int LidarDistanceMin = 100; // on ne prend pas les points < 10cm quand on lit les données du Lidar
+const int LidarDistanceMin = 100;  // on ne prend pas les points < 10cm quand on lit les données du Lidar
 
 // Hough transform
-const int degreStep = 3; // degrés entre chaque droite calculée par Hough transform (3° -> 30 ms, 1° -> 90ms)
-const int HoughTransformAccumulatorsThreshold = 10; // on exclut les lignes qui contiennent moins de 10 points
-const int HoughTransformMemorySize = 24000; // taille de la matrice de Hough
-const double rhoTolerance = 500.0; // si une ligne est proche d'une autre de moins de 50cm, on l'exclut
-const double thetaMargin = 0.5; // si une ligne a un angle theta inférieur à 0,5 rad d'une autre, on l'exclut
-const double thetaToleranceParallel = 0.2; // pour trouver le mur parallèle au premier, il faut une différence d'angle inférieur à 0,2 rad
-const double thetaTolerancePerpendiculaire = 0.2; // pour trouver les murs perpendiculaires, il faut une différence d'angle inférieur à 0,2 rad (après - PI/2)
+const int degreStep = 3;                             // degrés entre chaque droite calculée par Hough transform (3° -> 30 ms, 1° -> 90ms)
+const int HoughTransformAccumulatorsThreshold = 10;  // on exclut les lignes qui contiennent moins de 10 points
+const int HoughTransformMemorySize = 24000;          // taille de la matrice de Hough
+const double rhoTolerance = 500.0;                   // si une ligne est proche d'une autre de moins de 50cm, on l'exclut
+const double thetaMargin = 0.5;                      // si une ligne a un angle theta inférieur à 0,5 rad d'une autre, on l'exclut
+const double thetaToleranceParallel = 0.2;           // pour trouver le mur parallèle au premier, il faut une différence d'angle inférieur à 0,2 rad
+const double thetaTolerancePerpendiculaire = 0.2;    // pour trouver les murs perpendiculaires, il faut une différence d'angle inférieur à 0,2 rad (après - PI/2)
 
 // Longueur des segments sur les lignes de Hough
-const int PointToLineDistanceMax = 20; // un point doit être à moins de 2cm d'une ligne pour en faire partie
-const int PointToPointDistanceMax = 70; // un point doit être à moins de 7cm du prochain pour faire partie du même groupe
-const int LineLengthMin = 250; // une ligne doit être longue d'au moins 25cm pour être prise en compte (permet de filtrer les robots) 
-
+const int PointToLineDistanceMax = 20;   // un point doit être à moins de 2cm d'une ligne pour en faire partie
+const int PointToPointDistanceMax = 70;  // un point doit être à moins de 7cm du prochain pour faire partie du même groupe
+const int LineLengthMin = 250;           // une ligne doit être longue d'au moins 25cm pour être prise en compte (permet de filtrer les robots)
 
 struct HoughLine {
-    double rho;
-    double theta;
-    double nb_accumulators;
-    double length;
+  double rho;
+  double theta;
+  double nb_accumulators;
+  double length;
 };
 
 struct Point {
-    double x, y;
+  double x, y;
 };
 
 // Calcul du centre du terrain (dans le référentiel du robot)
 Point computeCentroid(const std::vector<Point>& corners) {
-    Point centroid = {0, 0};
-    for (const auto& corner : corners) {
-        centroid.x += corner.x;
-        centroid.y += corner.y;
-    }
-    centroid.x /= corners.size();
-    centroid.y /= corners.size();
-    return centroid;
+  Point centroid = {0, 0};
+  for (const auto& corner : corners) {
+    centroid.x += corner.x;
+    centroid.y += corner.y;
+  }
+  centroid.x /= corners.size();
+  centroid.y /= corners.size();
+  return centroid;
 }
-
 
 // calcule le point d'intersection entre deux lignes
 bool findIntersection(const HoughLine& l1, const HoughLine& l2, double& x, double& y) {
-    double sinTheta1 = sin(l1.theta);
-    double sinTheta2 = sin(l2.theta);
-    double cosTheta1 = cos(l1.theta);
-    double cosTheta2 = cos(l2.theta);
-    double determinant = cosTheta1 * sinTheta2 - sinTheta1 * cosTheta2;
+  double sinTheta1 = sin(l1.theta);
+  double sinTheta2 = sin(l2.theta);
+  double cosTheta1 = cos(l1.theta);
+  double cosTheta2 = cos(l2.theta);
+  double determinant = cosTheta1 * sinTheta2 - sinTheta1 * cosTheta2;
 
-    // Si le déterminant est 0, les lignes sont parallèles ou coïncidentes
-    if (abs(determinant) < 1e-10) {
-        return false; 
-    }
+  // Si le déterminant est 0, les lignes sont parallèles ou coïncidentes
+  if (abs(determinant) < 1e-10) {
+    return false;
+  }
 
-    x = (l1.rho * sinTheta2 - l2.rho * sinTheta1) / determinant;
-    y = (l2.rho * cosTheta1 - l1.rho * cosTheta2) / determinant;
+  x = (l1.rho * sinTheta2 - l2.rho * sinTheta1) / determinant;
+  y = (l2.rho * cosTheta1 - l1.rho * cosTheta2) / determinant;
 
-    return true; 
+  return true;
 }
 
 // Fonction pour ordonner les coins dans le sens horaire
 void sortPointsClockwise(std::vector<Point>& points, Point center) {
-    sort(points.begin(), points.end(), [center](const Point& a, const Point& b) {
-        double angleA = atan2(a.y - center.y, a.x - center.x);
-        double angleB = atan2(b.y - center.y, b.x - center.x);
+  sort(points.begin(), points.end(), [center](const Point& a, const Point& b) {
+    double angleA = atan2(a.y - center.y, a.x - center.x);
+    double angleB = atan2(b.y - center.y, b.x - center.x);
 
-        // Normalisation des angles pour s'assurer qu'ils sont dans le même intervalle
-        angleA = fmod(angleA, 2 * PI);
-        angleB = fmod(angleB, 2 * PI);
+    // Normalisation des angles pour s'assurer qu'ils sont dans le même intervalle
+    angleA = fmod(angleA, 2 * PI);
+    angleB = fmod(angleB, 2 * PI);
 
-        // Comparaison des angles normalisés
-        return angleA > angleB;
-    });
+    // Comparaison des angles normalisés
+    return angleA > angleB;
+  });
 }
 
 /* Hough Transform
-*  algo : https://www.keymolen.com/2013/05/hough-transformation-c-implementation.html
-*/
-std::vector<HoughLine> houghTransform(std::vector<MutableVector2> points, int nbPoints, int numRho) {  
-    
-    std::vector<HoughLine> lines;
-    const int numTheta = 180;
-    double thetaStep = degreStep * PI / 180.0;
-    double rhoStep = numRho * 2.0 * numTheta / HoughTransformMemorySize;
-    int accumulator[HoughTransformMemorySize] = {0};
+ *  algo : https://www.keymolen.com/2013/05/hough-transformation-c-implementation.html
+ */
+std::vector<HoughLine> houghTransform(std::vector<MutableVector2> points, int nbPoints, int numRho) {
+  std::vector<HoughLine> lines;
+  const int numTheta = 180;
+  double thetaStep = degreStep * PI / 180.0;
+  double rhoStep = numRho * 2.0 * numTheta / HoughTransformMemorySize;
+  int accumulator[HoughTransformMemorySize] = {0};
 
-    // calcul de rho pour chaque valeur de theta
-    for (int i = 0; i < nbPoints; i++) {
-        MutableVector2 point = points[i];
-        for (int thetaIndex = 0; thetaIndex < numTheta; thetaIndex += degreStep) {
-            double theta = thetaIndex * thetaStep / degreStep;
-            int rhoIndex = round((numRho + (point.x() * cos(theta) + point.y() * sin(theta))) / rhoStep);
-            int accuIndex = thetaIndex * numRho * 2 / rhoStep + rhoIndex;
-            if (accuIndex >= 0 && accuIndex < HoughTransformMemorySize) {
-                accumulator[accuIndex]++;
-            }
-        }
-    }
-
-    // on parcourt la matrice de Hough pour récupérer les lignes avec un nombre d'accumulateurs suffisamment élevé
+  // calcul de rho pour chaque valeur de theta
+  for (int i = 0; i < nbPoints; i++) {
+    MutableVector2 point = points[i];
     for (int thetaIndex = 0; thetaIndex < numTheta; thetaIndex += degreStep) {
-      for (int rhoIndex = 0; rhoIndex < numRho * 2 / rhoStep; rhoIndex++) {
-        int indice = thetaIndex * numRho * 2 / rhoStep + rhoIndex;
-        if(indice >= 0 && indice < HoughTransformMemorySize) {
-          if (accumulator[indice] >= HoughTransformAccumulatorsThreshold) {
-            HoughLine line;
-            line.rho = rhoIndex * rhoStep - numRho;
-            line.theta = thetaIndex * thetaStep / degreStep;
-            line.nb_accumulators = accumulator[indice];
-            lines.push_back(line);
-            if (lines.size() > 4000) { // pour éviter le CRASH quand lines.size() == 4096 !!
-              return lines;
-            }
-          }
-        } 
+      double theta = thetaIndex * thetaStep / degreStep;
+      int rhoIndex = round((numRho + (point.x() * cos(theta) + point.y() * sin(theta))) / rhoStep);
+      int accuIndex = thetaIndex * numRho * 2 / rhoStep + rhoIndex;
+      if (accuIndex >= 0 && accuIndex < HoughTransformMemorySize) {
+        accumulator[accuIndex]++;
       }
     }
+  }
 
-    return lines;
+  // on parcourt la matrice de Hough pour récupérer les lignes avec un nombre d'accumulateurs suffisamment élevé
+  for (int thetaIndex = 0; thetaIndex < numTheta; thetaIndex += degreStep) {
+    for (int rhoIndex = 0; rhoIndex < numRho * 2 / rhoStep; rhoIndex++) {
+      int indice = thetaIndex * numRho * 2 / rhoStep + rhoIndex;
+      if (indice >= 0 && indice < HoughTransformMemorySize) {
+        if (accumulator[indice] >= HoughTransformAccumulatorsThreshold) {
+          HoughLine line;
+          line.rho = rhoIndex * rhoStep - numRho;
+          line.theta = thetaIndex * thetaStep / degreStep;
+          line.nb_accumulators = accumulator[indice];
+          lines.push_back(line);
+          if (lines.size() > 4000) {  // pour éviter le CRASH quand lines.size() == 4096 !!
+            return lines;
+          }
+        }
+      }
+    }
+  }
+
+  return lines;
 }
 
 float distance(const Point& p1, const Point& p2) {
-    return sqrt(pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2));
+  return sqrt(pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2));
 }
 
 // Fonction pour convertir la ligne de Hough en y = ax + b
 void convertHoughLineToSlopeIntercept(const HoughLine& line, double& a, double& b) {
-    a = -1.0 / tan(line.theta);
-    b = line.rho / sin(line.theta);
+  a = -1.0 / tan(line.theta);
+  b = line.rho / sin(line.theta);
 }
 
 // distance d'un point à une droite d'équation ax + by + c = 0
 double calculateDistanceToLine(const MutableVector2& point, double a, double b, double c) {
-    return abs(a * point.x() + b * point.y() + c) / sqrt(a * a + b * b);
+  return abs(a * point.x() + b * point.y() + c) / sqrt(a * a + b * b);
 }
-
 
 /*
  * Calcule les coordonnées du robot sur le terrain
  *
  * readFromLidar: true pour traiter les données reçues du Lidar, false pour traiter des données de test
  * show_log: true pour afficher le log qui permet d'afficher ensuite les points et les murs dans le programme python
- * input: utilisée pour les tests, contient les données du Lidar 
-*/
-RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool show_log = false, const char* input = nullptr) {  
+ * input: utilisée pour les tests, contient les données du Lidar
+ */
+RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool show_log = false, const char* input = nullptr) {
   double orientation = -9999;
   std::vector<MutableVector2> points_walls;
   const int nb_tours_lidar = 55;
@@ -156,100 +152,101 @@ RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool sho
   String full_log = "******** START ********\r\n";
   unsigned long start_millis = millis();
 
-  if(readFromLidar) {
-    
+  if (readFromLidar) {
     CircularLidarPointsBuffer lidarPointsBuffer = CircularLidarPointsBuffer(456);
-      
-    
+
     for (int i = 0; i < nb_tours_lidar; i++) {
-        std::vector<LidarPoint> lidarPoints = lidarPointsBuffer.getPoints();
-        for (size_t j = 0; j < lidarPoints.size(); j++) {
-          LidarPoint lidarPoint = lidarPoints[j];
-          if(lidarPoint.distance() > LidarDistanceMin && lidarPoint.distance() < 3000 ) // on ne prend pas les points < 10cm et > 300cm
-          { 
-            points2[nb_points++] = lidarPoint;
-            if(lidarPoint.distance() > distance_max) {
-              distance_max = lidarPoint.distance();
-            }        
+      std::vector<LidarPoint> lidarPoints = lidarPointsBuffer.getPoints();
+      for (size_t j = 0; j < lidarPoints.size(); j++) {
+        LidarPoint lidarPoint = lidarPoints[j];
+        if (lidarPoint.distance() > LidarDistanceMin && lidarPoint.distance() < 3000)  // on ne prend pas les points < 10cm et > 300cm
+        {
+          points2[nb_points++] = lidarPoint;
+          if (lidarPoint.distance() > distance_max) {
+            distance_max = lidarPoint.distance();
           }
         }
+      }
     }
 
     unsigned long elapsed = millis() - start_millis;
     // SerialDebug.println("Temps de récupération des données du lidar : " + String(elapsed) + "ms");
-  }
-  else { // pour tester sans lidar
-    if(input == nullptr) {
+  } else {  // pour tester sans lidar
+    if (input == nullptr) {
       input = "(22331,403);(22402,404);(22473,404);(22544,405);(22615,406);(22686,408);(22757,409);(22828,410);(22899,412);(22970,413);(23041,414);(23112,416);(28761,1078);(28832,1075);(28903,1072);(28974,1069);(29045,1066);(29116,1064);(29187,1062);(29258,1060);(29329,1058);(29400,1056);(29471,1054);(29542,1052);(29622,1051);(29686,1050);(29750,1049);(29814,1049);(29878,1048);(29942,1048);(30006,1048);(30070,1048);(30134,1048);(30198,1048);(30262,1048);(30326,1048);(30404,1049);(30475,1049);(30546,1050);(30617,1051);(30688,1051);(30759,1050);(30830,1049);(30901,1049);(30972,1049);(31043,1049);(31114,1051);(31185,1054);(31262,1057);(31339,1060);(31416,1063);(31493,1066);(31570,1070);(31647,1077);(31724,1079);(31801,1086);(31878,1091);(31955,1093);(32032,1100);(32109,1105);(32186,1110);(32257,1116);(32328,1123);(32399,1129);(32470,1135);(32541,1142);(32612,1149);(32683,1157);(32754,1165);(32825,1174);(32896,1182);(32967,1190);(33044,1197);(33115,1205);(33186,1214);(33257,1223);(33328,1231);(33399,1239);(33470,1248);(33541,1255);(33612,1264);(33683,1275);(33754,1284);(33825,1292);(33902,1301);(33973,1312);(34044,1325);(34115,1339);(34186,1353);(34257,1368);(34328,1386);(34399,1402);(34470,1418);(34541,1433);(34612,1449);(34683,1468);(34779,1486);(34850,1506);(34921,1528);(34992,1551);(35063,1576);(35134,1600);(35205,1622);(35276,1636);(774,2274);(845,2264);(916,2254);(987,2243);(1058,2234);(1129,2224);(1200,2213);(1271,2203);(1352,2194);(1423,2185);(1494,2177);(1565,2169);(1636,2162);(1707,2155);(1778,2148);(1849,2141);(1920,2134);(1991,2128);(2062,2122);(2133,2120);(2205,2116);(2276,456);(2347,454);(2418,454);(2489,457);(2560,458);(2631,458);(2702,458);(2773,458);(2844,458);(2915,458);(2986,458);(3063,458);(3134,458);(3205,458);(3276,459);(3347,459);(3418,460);(3489,460);(3560,461);(3631,462);(3702,463);(3773,464);(3844,464);(3919,465);(3990,466);(4061,467);(4132,468);(4203,469);(4274,470);(4345,472);(4416,479);(4487,489);(4558,2139);(4629,2150);(4700,2158);(4789,2165);(4860,2172);(4931,2178);(5002,2185);(5073,2193);(5144,2161);(5215,2077);(5286,2024);(5357,1964);(5428,1899);(5499,1843);(5570,1794);(5648,1738);(5718,1619);(5788,1608);(5858,1586);(5928,1554);(5998,1523);(6068,1497);(6138,1472);(6208,1451);(6278,1432);(6348,1412);(6418,1390);(6490,1369);(6561,1349);(6632,1329);(6703,1309);(6774,1291);(6845,1276);(6916,532);(6987,532);(7058,482);(7129,459);(7200,453);(7271,451);(7345,447);(7410,443);(7475,439);(7540,435);(7605,432);(7670,430);(7735,429);(7800,429);(7865,430);(7930,432);(7995,434);(8060,438);(8137,445);(8208,451);(8279,459);(8350,466);(8421,461);(8492,944);(8563,938);(8634,932);(8705,926);(8776,919);(8847,912);(8918,905);(8999,899);(9074,893);(9149,888);(9224,882);(9299,876);(9374,870);(9449,865);(9524,860);(9599,855);(9674,850);(9749,848);(9824,841);(9901,836);(9978,831);(10055,826);(10132,824);(10209,815);(10286,804);(10363,219);(10440,214);(10517,208);(10594,208);(10671,209);(10748,209);(10825,207);(10897,205);(10969,203);(11041,201);(11113,200);(11185,198);(11257,198);(11329,198);(11401,198);(11473,198);(11545,199);(11617,201);(11691,203);(11757,205);(11823,208);(11889,210);(11955,211);(12021,211);(12087,209);(12153,206);(12219,199);(12285,193);(12351,187);(12417,185);(12490,181);(12561,179);(12632,177);(12703,175);(12774,173);(12845,172);(12916,170);(12987,168);(13058,167);(13129,167);(13200,166);(13271,166);(13352,166);(13423,166);(13494,166);(13565,166);(13636,166);(13707,166);(13778,167);(13849,167);(13920,168);(13991,169);(14062,170);(14133,171);(14208,172);(14279,173);(14350,173);(14421,174);(14492,175);(14563,176);(14634,177);(14705,178);(14776,180);(14847,181);(14918,183);(14989,185);(15067,188);(15142,190);(15217,194);(15292,198);(15367,202);(15442,209);(15517,214);(15592,220);(15667,229);(15742,246);(15817,266);(15892,277);(15973,285);(16044,293);(16115,305);(16186,326);(16257,556);(16328,555);(16399,553);(16470,544);(16541,536);(16612,529);(16683,522);(16754,514);(16836,507);(16907,501);(16978,494);(17049,487);(17120,479);(17191,469);(18831,430);(18902,423);(18973,424);(19044,427);(19115,429);(19186,428);(19257,427);(19328,426);(19406,424);(19472,423);(19538,421);(19604,419);(19670,418);(19736,416);(19802,415);(19868,413);(19934,412);(20000,411);(20066,410);(20132,408);(20208,407);(20279,406);(20350,405);(20421,404);(20492,403);(20563,403);(20634,402);(20705,402);(20776,402);(20847,401);(20918,401);(20989,401);(21063,401);(21138,401);(21213,401);(21288,401);(21363,401);(21438,401);(21513,400);(21588,400);(21663,400);(21738,400);(21813,400);(21888,401);(21973,401);(22041,401);(22109,401);(22177,402);(22245,402);(22313,403);(22381,404);(22449,405);(22517,406);(22585,407);(22653,408);(22721,409);(22779,410);(22850,411);(22921,412);(22992,414);(23063,415);(23134,417);(23205,419);(23276,421);(23347,422);(23418,424);(23489,426);(23560,428);(23637,430);(23706,432);(23775,435);(23844,442);(23913,448);(23982,455);(24051,461);(24120,468);(24189,473);(24258,475);(24327,479);(24396,482);(24476,485);(24547,488);(24618,492);(24689,496);(24760,500);(24831,504);(24902,508);(24973,512);(25044,516);(25115,523);(25186,525);(25257,532);(25334,538);(25400,543);(25466,549);(25532,554);(25598,560);(25664,566);(25730,572);(25796,578);(25862,585);(25928,592);(25994,598);(26060,605);(26137,611);(26208,618);(26279,625);(26350,633);(26421,640);(26492,648);(26563,656);(26634,665);(26705,674);(26776,683);(26847,691);(26918,700);(26995,709);(27066,719);(27137,731);(27208,742);(27279,753);(27350,765);(27421,778);(27492,791);(27563,806);(27634,822);(27705,839);(27776,856);(27851,873);(27921,891);(27991,909);(28061,930);(28131,951);(28201,985);(28271,1028);(28341,1058);(28411,1079);(28481,1084);(28551,1083);(28621,1081);(28775,1077);(28846,1074);(28917,1071);(28988,1069);(29059,1066);(29130,1064);(29201,1062);(29272,1060);(29343,1058);(29414,1056);(29485,1054);(29556,1053);(29637,1052);(29706,1051);(29775,1050);(29844,1049);(29913,1048);(29982,1048);(30051,1048);(30120,1048);(30189,1048);(30258,1049);(30327,1049);(30396,1049);(30476,1049);(30547,1050);(30618,1050);(30689,1051);(30760,1050);(30831,1049);(30902,1048);(30973,1047);(31044,1047);(31115,1049);(31186,1051);(31257,1054);(31334,1057);(31405,1060);(31476,1064);(31547,1068);(31618,1071);(31689,1075);(31760,1079);(31831,1086);(31902,1091);(31973,1093);(32044,1101);(32115,1106);(32190,1111);(32261,1117);(32332,1123);(32403,1129);(32474,1136);(32545,1143);(32616,1150);(32687,1157);(32758,1165);(32829,1173);(32900,1180);(32971,1188);(33049,1196);(33120,1204);(33191,1213);(33262,1220);(33333,1228);(33404,1236);(33475,1244);(33546,1252);(33617,1261);(33688,1272);(33759,1281);(33830,1289);(33908,1297);(33979,1307);(34050,1320);(34121,1333);(34192,1348);(34263,1364);(34334,1379);(34405,1394);(34476,1411);(34547,1428);(34618,1444);(34689,1463);(34764,1483);(34834,1502);(34904,1521);(34974,1544);(35044,1567);(35114,1591);(35184,1621);(35254,1638);(755,2280);(826,2271);(897,2261);(968,2250);(1039,2239);(1110,2229);(1181,2219);(1252,2208);(1328,2199);(1399,2191);(1470,2183);(1541,2175);(1612,2167);(1683,2160);(1754,2152);(1825,2145);(1896,2138);(1967,2132);(2038,2126);(2109,2120)";
     }
-    const char *p = input;
+    const char* p = input;
     float distance, angle;
-    while (*p) { 
+    while (*p) {
       if (sscanf(p, "(%f,%f)", &angle, &distance) == 2) {
         LidarPoint lidarPoint(distance, 1, angle);
 
-        if(lidarPoint.distance() > LidarDistanceMin) { // on ne prend pas les points < 13cm
+        if (lidarPoint.distance() > LidarDistanceMin) {  // on ne prend pas les points < 13cm
           points2[nb_points++] = lidarPoint;
-          if(lidarPoint.distance() > distance_max) {
+          if (lidarPoint.distance() > distance_max) {
             distance_max = lidarPoint.distance();
-          }        
+          }
         }
 
-        while (*p && *p != ';') p++; 
-        if (*p == ';') p++; 
+        while (*p && *p != ';') p++;
+        if (*p == ';') p++;
       } else {
-            break; // Si la lecture échoue, sortir de la boucle
+        break;  // Si la lecture échoue, sortir de la boucle
       }
     }
   }
 
-  if(show_log) {
+  if (show_log) {
     full_log += "** LIDAR points: ";
     for (size_t i = 0; i < nb_points; i++) {
       MutableLidarPoint lidarPoint = points2[i];
-      full_log += "(" + String(lidarPoint.angle()) + "," + String(lidarPoint.distance()) + ");" ;
+      full_log += "(" + String(lidarPoint.angle()) + "," + String(lidarPoint.distance()) + ");";
     }
-    if (full_log.length() > 0 && full_log[full_log.length() - 1] == ';') { full_log = full_log.substring(0, full_log.length() - 1); }
+    if (full_log.length() > 0 && full_log[full_log.length() - 1] == ';') {
+      full_log = full_log.substring(0, full_log.length() - 1);
+    }
     full_log += "\r\n";
   }
 
   // conversion en coordonnées cartésiennes :
   std::vector<MutableVector2> points_cart;
-  if(nb_points > 0) {
+  if (nb_points > 0) {
     for (size_t i = 0; i < nb_points; i++) {
       MutableLidarPoint lidarPoint = points2[i];
       // avec rotation de 90° vers la droite (pour que l'avant du lidar pointe vers le haut sur les graphes)
       float x = lidarPoint.distance() * cos(lidarPoint.angle() / 18000.0 * PI);
-      float y = - lidarPoint.distance() * sin(lidarPoint.angle() / 18000.0 * PI);
+      float y = -lidarPoint.distance() * sin(lidarPoint.angle() / 18000.0 * PI);
       points_cart.push_back(MutableVector2(Vector2(x, y)));
     }
   }
 
-  if(show_log) {
+  if (show_log) {
     full_log += "** CARTESIAN points: ";
     for (int i = 0; i < nb_points; i++) {
       MutableVector2 point = points_cart[i];
       full_log += "(" + String(point.x()) + "," + String(point.y()) + ");";
     }
-    if (full_log.length() > 0 && full_log[full_log.length() - 1] == ';') { full_log = full_log.substring(0, full_log.length() - 1); }
+    if (full_log.length() > 0 && full_log[full_log.length() - 1] == ';') {
+      full_log = full_log.substring(0, full_log.length() - 1);
+    }
     full_log += "\r\n";
   }
-   
+
   int numRho = distance_max;
-  
+
   start_millis = millis();
   std::vector<HoughLine> lines = houghTransform(points_cart, nb_points, numRho);
   // unsigned long elapsed = millis() - start_millis;
   // SerialDebug.println("Temps hough transform : " + String(elapsed) + "ms");
   // start_millis = millis();
-    
+
   // Tri des lignes selon nb_accumulators du plus grand au plus petit
   sort(lines.begin(), lines.end(), [](const HoughLine& a, const HoughLine& b) {
-      return a.nb_accumulators > b.nb_accumulators;
+    return a.nb_accumulators > b.nb_accumulators;
   });
 
   std::vector<HoughLine> walls;
-  if(lines.empty()) {
+  if (lines.empty()) {
     return RobotInfos(Vector2(-9999, -9999), orientation, points_walls);
   }
 
@@ -261,221 +258,195 @@ RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool sho
     bool isDifferentEnough = true;
     bool isParallel = false;
     bool isPerpendicular = false;
-    
-    if(!walls.empty()) {
+
+    if (!walls.empty()) {
       for (const auto& wall : walls) {
+        // on exclut les lignes qui ont un rho et theta similaires :
+        if (abs(line.rho - wall.rho) < rhoTolerance && abs(line.theta - wall.theta) < thetaMargin) {
+          isDifferentEnough = false;
+          break;
+        }
 
-          // on exclut les lignes qui ont un rho et theta similaires :
-          if (abs(line.rho - wall.rho) < rhoTolerance && abs(line.theta - wall.theta) < thetaMargin) {
-              isDifferentEnough = false;
-              break;
+        // cas particulier des lignes verticales :
+        if (line.theta > PI - thetaMargin && wall.theta < thetaMargin && ((line.rho < 0 && wall.rho > 0) || (line.rho > 0 && wall.rho < 0))) {
+          if (abs(line.rho) - abs(wall.rho) < rhoTolerance && abs(PI - line.theta - wall.theta) < thetaMargin) {
+            isDifferentEnough = false;
+            break;
+          }
+        } else if (line.theta < thetaMargin && wall.theta > PI - thetaMargin && ((line.rho < 0 && wall.rho > 0) || (line.rho > 0 && wall.rho < 0))) {
+          if (abs(line.rho) - abs(wall.rho) < rhoTolerance && abs(PI - line.theta - wall.theta) < thetaMargin) {
+            isDifferentEnough = false;
+            break;
+          }
+        }
+
+        double angleDifferenceWithFirstWall = abs(line.theta - walls[0].theta);
+
+        // Mur perpendiculaire au 1er mur :
+        if (secondPerpendicularWall == nullptr &&
+            abs(angleDifferenceWithFirstWall - PI / 2.0) < thetaTolerancePerpendiculaire) {
+          double distance = 0.9 * fP.fieldWidth() * 10.0;
+
+          if (parallelWall != nullptr) {
+            double distanceBetweenParallelWalls = abs(walls[0].rho - parallelWall->rho);
+            if (distanceBetweenParallelWalls > 0.9 * fP.fieldWidth() * 10.0 && distanceBetweenParallelWalls < 1.1 * fP.fieldWidth() * 10.0) {
+              // les murs parallèles sont les grands murs, il faut qu'il y ait fieldLength entre les murs perpendiculaires
+              distance = 0.9 * fP.fieldLength() * 10.0;
+            }
           }
 
-          // cas particulier des lignes verticales : 
-          if (line.theta > PI - thetaMargin && wall.theta < thetaMargin 
-                && ((line.rho < 0 && wall.rho > 0) || (line.rho > 0 && wall.rho < 0))) {
-            if (abs(line.rho) - abs(wall.rho) < rhoTolerance && abs(PI - line.theta - wall.theta) < thetaMargin) {
-              isDifferentEnough = false;
+          if (firstPerpendicularWall != nullptr) {
+            // vérifie si le second mur perpendiculaire est parallèle à firstPerpendicularWall et assez loin
+
+            // cas particulier des lignes verticales :
+            if (line.theta > PI - thetaMargin && firstPerpendicularWall->theta < thetaMargin && ((line.rho < 0 && firstPerpendicularWall->rho > 0) || (line.rho > 0 && firstPerpendicularWall->rho < 0))) {
+              if (abs(line.rho) - abs(firstPerpendicularWall->rho) < rhoTolerance && abs(PI - line.theta - firstPerpendicularWall->theta) < thetaMargin) {
+                // similaires
+              }
+            } else if (line.theta < thetaMargin && firstPerpendicularWall->theta > PI - thetaMargin && ((line.rho < 0 && firstPerpendicularWall->rho > 0) || (line.rho > 0 && wall.rho < 0))) {
+              if (abs(line.rho) - abs(firstPerpendicularWall->rho) < rhoTolerance && abs(PI - line.theta - firstPerpendicularWall->theta) < thetaMargin) {
+                // similaires
+              }
+            }
+            // autres cas :
+            else if (abs(firstPerpendicularWall->rho - line.rho) > distance && ((firstPerpendicularWall->rho > 0 && line.rho < 0) || (firstPerpendicularWall->rho < 0 && line.rho > 0))) {
+              isPerpendicular = true;
               break;
             }
-          } else if (line.theta < thetaMargin && wall.theta > PI - thetaMargin 
-                && ((line.rho < 0 && wall.rho > 0) || (line.rho > 0 && wall.rho < 0))) {
-            if (abs(line.rho) - abs(wall.rho) < rhoTolerance && abs(PI - line.theta - wall.theta) < thetaMargin) {
-              isDifferentEnough = false;
-              break;
-            }
-          }          
-
-          double angleDifferenceWithFirstWall = abs(line.theta - walls[0].theta);
-
-          // Mur perpendiculaire au 1er mur :
-          if (secondPerpendicularWall == nullptr &&
-                abs(angleDifferenceWithFirstWall - PI / 2.0) < thetaTolerancePerpendiculaire) 
-          {
-              double distance = 0.9 * fP.fieldWidth() * 10.0;
-
-              if(parallelWall != nullptr) {
-                double distanceBetweenParallelWalls = abs(walls[0].rho - parallelWall->rho); 
-                if(distanceBetweenParallelWalls > 0.9 * fP.fieldWidth() * 10.0
-                    && distanceBetweenParallelWalls < 1.1 * fP.fieldWidth() * 10.0) 
-                { 
-                  // les murs parallèles sont les grands murs, il faut qu'il y ait fieldLength entre les murs perpendiculaires
-                  distance = 0.9 * fP.fieldLength() * 10.0;
-                }
-              }
-
-              if(firstPerpendicularWall != nullptr) {
-                // vérifie si le second mur perpendiculaire est parallèle à firstPerpendicularWall et assez loin
-
-                // cas particulier des lignes verticales : 
-                if (line.theta > PI - thetaMargin && firstPerpendicularWall->theta < thetaMargin 
-                      && ((line.rho < 0 && firstPerpendicularWall->rho > 0) || (line.rho > 0 && firstPerpendicularWall->rho < 0))) {
-                  if (abs(line.rho) - abs(firstPerpendicularWall->rho) < rhoTolerance && abs(PI - line.theta - firstPerpendicularWall->theta) < thetaMargin) {
-                    // similaires
-                  }
-                } else if (line.theta < thetaMargin && firstPerpendicularWall->theta > PI - thetaMargin 
-                      && ((line.rho < 0 && firstPerpendicularWall->rho > 0) || (line.rho > 0 && wall.rho < 0))) {
-                  if (abs(line.rho) - abs(firstPerpendicularWall->rho) < rhoTolerance && abs(PI - line.theta - firstPerpendicularWall->theta) < thetaMargin) {
-                    // similaires
-                  }
-                } 
-                // autres cas :
-                else if(abs(firstPerpendicularWall->rho - line.rho) > distance
-                    && ((firstPerpendicularWall->rho > 0 && line.rho < 0) || (firstPerpendicularWall->rho < 0 && line.rho > 0))) 
-                {
-                  isPerpendicular = true;
-                  break;
-                }
-              }
-              else {
-                isPerpendicular = true;
-                break;
-              }
+          } else {
+            isPerpendicular = true;
+            break;
           }
+        }
 
-          // Mur parallèle au 1er mur :
-          if (parallelWall == nullptr && angleDifferenceWithFirstWall < thetaToleranceParallel
-                && abs(walls[0].rho - line.rho) > 0.9 * fP.fieldWidth() * 10.0
-                && ((walls[0].rho > 0 && line.rho < 0) || (walls[0].rho < 0 && line.rho > 0))) 
-          {
-              if(firstPerpendicularWall != nullptr && secondPerpendicularWall != nullptr) {
-                double distanceBetweenPerpendicularWalls = abs(firstPerpendicularWall->rho - secondPerpendicularWall->rho);
-                
-                if(distanceBetweenPerpendicularWalls > 0.9 * fP.fieldWidth() * 10.0
-                    && distanceBetweenPerpendicularWalls < 1.1 * fP.fieldWidth() * 10.0) 
-                { 
-                  // les murs perpendiculaires sont les grands murs, il faut que le mur parallèle soit à une distance de fieldLength
-                  if(abs(walls[0].rho - line.rho) > 0.9 * fP.fieldLength() * 10.0) {
-                    isParallel = true;
-                    break;
-                  }  
-                } else {
-                  isParallel = true;
-                  break;
-                }
-              } else {
+        // Mur parallèle au 1er mur :
+        if (parallelWall == nullptr && angleDifferenceWithFirstWall < thetaToleranceParallel && abs(walls[0].rho - line.rho) > 0.9 * fP.fieldWidth() * 10.0 && ((walls[0].rho > 0 && line.rho < 0) || (walls[0].rho < 0 && line.rho > 0))) {
+          if (firstPerpendicularWall != nullptr && secondPerpendicularWall != nullptr) {
+            double distanceBetweenPerpendicularWalls = abs(firstPerpendicularWall->rho - secondPerpendicularWall->rho);
+
+            if (distanceBetweenPerpendicularWalls > 0.9 * fP.fieldWidth() * 10.0 && distanceBetweenPerpendicularWalls < 1.1 * fP.fieldWidth() * 10.0) {
+              // les murs perpendiculaires sont les grands murs, il faut que le mur parallèle soit à une distance de fieldLength
+              if (abs(walls[0].rho - line.rho) > 0.9 * fP.fieldLength() * 10.0) {
                 isParallel = true;
                 break;
               }
+            } else {
+              isParallel = true;
+              break;
+            }
+          } else {
+            isParallel = true;
+            break;
           }
+        }
       }
     }
 
     if (walls.empty() || (isDifferentEnough && (isParallel || isPerpendicular))) {
-        // ** Check de la longueur du segment détecté
-        double a, b;
-        convertHoughLineToSlopeIntercept(line, a, b);
-        std::vector<MutableVector2> closePoints; // on récupère tous les points "sur" la droite
-        for (const auto& point : points_cart) {
-            double distance = calculateDistanceToLine(point, -a, 1, -b);
-            if (distance <= PointToLineDistanceMax) {
-                closePoints.push_back(point);
-            }
+      // ** Check de la longueur du segment détecté
+      double a, b;
+      convertHoughLineToSlopeIntercept(line, a, b);
+      std::vector<MutableVector2> closePoints;  // on récupère tous les points "sur" la droite
+      for (const auto& point : points_cart) {
+        double distance = calculateDistanceToLine(point, -a, 1, -b);
+        if (distance <= PointToLineDistanceMax) {
+          closePoints.push_back(point);
         }
+      }
 
-        // On crée des groupes des points rapprochés sur la droite :
-        std::vector<std::vector<MutableVector2>> groups;
-        std::vector<MutableVector2> currentGroup;
+      // On crée des groupes des points rapprochés sur la droite :
+      std::vector<std::vector<MutableVector2>> groups;
+      std::vector<MutableVector2> currentGroup;
+      groups.push_back(currentGroup);
+
+      for (const auto& point : closePoints) {
+        if (currentGroup.empty()) {
+          currentGroup.push_back(point);
+        } else {
+          if (point.toVector2().distance(currentGroup.back().toVector2()) <= PointToPointDistanceMax) {
+            currentGroup.push_back(point);
+          } else {
+            std::vector<MutableVector2> groupCopy = currentGroup;
+            groups.push_back(groupCopy);
+            currentGroup = std::vector<MutableVector2>();
+            currentGroup.push_back(point);
+          }
+        }
+      }
+
+      if (!currentGroup.empty()) {
         groups.push_back(currentGroup);
-        
-        for (const auto& point : closePoints) {
-            if (currentGroup.empty()) {
-              currentGroup.push_back(point);
-            }
-            else {
-              if (point.toVector2().distance(currentGroup.back().toVector2()) <= PointToPointDistanceMax) {
-                currentGroup.push_back(point);
-              }
-              else {
-                std::vector<MutableVector2> groupCopy = currentGroup;
-                groups.push_back(groupCopy);
-                currentGroup = std::vector<MutableVector2>();
-                currentGroup.push_back(point);
-              }
-            }
-        }
+      }
 
-        if (!currentGroup.empty()) {
-            groups.push_back(currentGroup);
-        }
+      double maxDistance = 0.0;
 
-        double maxDistance = 0.0;
-
-        // quel est le groupe qui a la plus grande longueur :
-        for (const auto& group : groups) {
-            if (group.size() >= 2) { 
-                double groupDistance = group.front().toVector2().distance(group.back().toVector2());
-                if (groupDistance > maxDistance) {
-                    maxDistance = groupDistance;
-                }
-            }
-        }
-
-        if (maxDistance > LineLengthMin) {
-          // SerialDebug.println("wall ajouté -> rho: " + String(line.rho) + ", theta: " + String(line.theta) + ", accumulators: " 
-          //       + String(line.nb_accumulators) + ", close points: " + String(closePoints.size()) + ", nb groups: "
-          //       + String(groups.size()) + ", maxDistance=" + String(maxDistance));
-
-          line.length = maxDistance;
-          walls.push_back(line);
-
-          if (isPerpendicular) {
-            if(firstPerpendicularWall == nullptr) { 
-              firstPerpendicularWall = &line; 
-            }
-            else if (secondPerpendicularWall == nullptr) { 
-              secondPerpendicularWall = &line; 
-            }
-          }
-          else if (isParallel) {
-            parallelWall = &line;
+      // quel est le groupe qui a la plus grande longueur :
+      for (const auto& group : groups) {
+        if (group.size() >= 2) {
+          double groupDistance = group.front().toVector2().distance(group.back().toVector2());
+          if (groupDistance > maxDistance) {
+            maxDistance = groupDistance;
           }
         }
+      }
+
+      if (maxDistance > LineLengthMin) {
+        // SerialDebug.println("wall ajouté -> rho: " + String(line.rho) + ", theta: " + String(line.theta) + ", accumulators: "
+        //       + String(line.nb_accumulators) + ", close points: " + String(closePoints.size()) + ", nb groups: "
+        //       + String(groups.size()) + ", maxDistance=" + String(maxDistance));
+
+        line.length = maxDistance;
+        walls.push_back(line);
+
+        if (isPerpendicular) {
+          if (firstPerpendicularWall == nullptr) {
+            firstPerpendicularWall = &line;
+          } else if (secondPerpendicularWall == nullptr) {
+            secondPerpendicularWall = &line;
+          }
+        } else if (isParallel) {
+          parallelWall = &line;
+        }
+      }
     }
 
-    if(walls.size() == 4) {
+    if (walls.size() == 4) {
       break;
     }
   }
 
-  
-  if(walls.size() == 3) {
-    // ** on va deviner le 4ème mur 
+  if (walls.size() == 3) {
+    // ** on va deviner le 4ème mur
     double distance = fP.fieldWidth() * 10.0;
-    
-    if(parallelWall != nullptr) {
-      double distanceBetweenParallelWalls = abs(walls[0].rho - parallelWall->rho); 
-      
-      if(distanceBetweenParallelWalls > 0.9 * fP.fieldWidth() * 10.0
-          && distanceBetweenParallelWalls < 1.1 * fP.fieldWidth() * 10.0) 
-      { 
+
+    if (parallelWall != nullptr) {
+      double distanceBetweenParallelWalls = abs(walls[0].rho - parallelWall->rho);
+
+      if (distanceBetweenParallelWalls > 0.9 * fP.fieldWidth() * 10.0 && distanceBetweenParallelWalls < 1.1 * fP.fieldWidth() * 10.0) {
         // les murs parallèles sont les grands murs, il faut qu'il y ait fieldLength entre les murs perpendiculaires
         distance = fP.fieldLength() * 10.0;
       }
 
       HoughLine line;
       line.rho = distance - abs(firstPerpendicularWall->rho);
-      if(firstPerpendicularWall->rho > 0) {
-        line.rho = - line.rho;
+      if (firstPerpendicularWall->rho > 0) {
+        line.rho = -line.rho;
       }
       line.theta = firstPerpendicularWall->theta;
       secondPerpendicularWall = &line;
       walls.push_back(line);
-    } 
-    else if(firstPerpendicularWall != nullptr && secondPerpendicularWall != nullptr) {
-      double distanceBetweenPerpendicularWalls = abs(firstPerpendicularWall->rho - secondPerpendicularWall->rho); 
-      
-      if(distanceBetweenPerpendicularWalls > 0.9 * fP.fieldWidth() * 10.0
-          && distanceBetweenPerpendicularWalls < 1.1 * fP.fieldWidth() * 10.0) 
-      { 
+    } else if (firstPerpendicularWall != nullptr && secondPerpendicularWall != nullptr) {
+      double distanceBetweenPerpendicularWalls = abs(firstPerpendicularWall->rho - secondPerpendicularWall->rho);
+
+      if (distanceBetweenPerpendicularWalls > 0.9 * fP.fieldWidth() * 10.0 && distanceBetweenPerpendicularWalls < 1.1 * fP.fieldWidth() * 10.0) {
         // les murs perpendiculaires sont les grands murs, il faut qu'il y ait fieldLength entre les murs parallèles
         distance = fP.fieldLength() * 10.0;
       }
 
       HoughLine line;
       line.rho = distance - abs(walls[0].rho);
-      if(walls[0].rho > 0) {
-        line.rho = - line.rho;
+      if (walls[0].rho > 0) {
+        line.rho = -line.rho;
       }
       line.theta = walls[0].theta;
       parallelWall = &line;
@@ -517,77 +488,82 @@ RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool sho
   //   full_log += "\r\n";
   // }
 
-
   // Trouver les coins
   std::vector<Point> corners;
   int limit_coord = 5000;
   for (size_t i = 0; i < walls.size(); i++) {
-    for (size_t j = i+1; j < walls.size(); j++) {      
+    for (size_t j = i + 1; j < walls.size(); j++) {
       double x, y;
       if (findIntersection(walls[i], walls[j], x, y)) {
-          if(abs(x) < limit_coord && abs(y) < limit_coord && corners.size() < 4) {
-            Point v ;
-            v.x = x;
-            v.y = y;
-            corners.push_back(v);
-          }
+        if (abs(x) < limit_coord && abs(y) < limit_coord && corners.size() < 4) {
+          Point v;
+          v.x = x;
+          v.y = y;
+          corners.push_back(v);
+        }
       }
     }
   }
 
-
   // points correspondants à la distance min à chaque mur
   for (size_t i = 0; i < walls.size(); i++) {
-      HoughLine wall = walls[i];
-      float x = wall.rho * cos(wall.theta);
-      float y = wall.rho * sin(wall.theta);
-      points_walls.push_back(MutableVector2(Vector2(x, y)));
+    HoughLine wall = walls[i];
+    float x = wall.rho * cos(wall.theta);
+    float y = wall.rho * sin(wall.theta);
+    points_walls.push_back(MutableVector2(Vector2(x, y)));
   }
 
-   if(show_log) {
+  if (show_log) {
     full_log += "** points_walls x: ";
     for (size_t i = 0; i < points_walls.size(); i++) {
       full_log += String(points_walls[i].x()) + ",";
     }
-    if (full_log.length() > 0 && full_log[full_log.length() - 1] == ',') { full_log = full_log.substring(0, full_log.length() - 1); }
+    if (full_log.length() > 0 && full_log[full_log.length() - 1] == ',') {
+      full_log = full_log.substring(0, full_log.length() - 1);
+    }
     full_log += "\r\n";
 
     full_log += "** points_walls y: ";
     for (size_t i = 0; i < points_walls.size(); i++) {
       full_log += String(points_walls[i].y()) + ",";
     }
-    if (full_log.length() > 0 && full_log[full_log.length() - 1] == ',') { full_log = full_log.substring(0, full_log.length() - 1); }
+    if (full_log.length() > 0 && full_log[full_log.length() - 1] == ',') {
+      full_log = full_log.substring(0, full_log.length() - 1);
+    }
     full_log += "\r\n";
   }
 
-
-  if(corners.size() != 4) { // on n'a pas les 4 coins, on arrête là
+  if (corners.size() != 4) {  // on n'a pas les 4 coins, on arrête là
     RobotInfos infos = RobotInfos(Vector2(-9999, -9999), orientation, points_walls);
-    if(show_log) {
-      full_log += "** Infos: nearest wall: " + String(infos.getNearestWall().toVector2().distance({0,0}) / 10.0) + " cm\r\n";
-      full_log += "******** END ********"; 
-      SerialDebug.println(full_log);    
+    if (show_log) {
+      full_log += "** Infos: nearest wall: " + String(infos.getNearestWall().toVector2().distance({0, 0}) / 10.0) + " cm\r\n";
+      full_log += "******** END ********";
+      SerialDebug.println(full_log);
     }
     return infos;
   }
 
-  Point centroid = computeCentroid(corners); // centre du terrain dans le référentiel du robot
+  Point centroid = computeCentroid(corners);  // centre du terrain dans le référentiel du robot
 
   sortPointsClockwise(corners, centroid);
-    
-  if(show_log) {
+
+  if (show_log) {
     full_log += "** corners x: ";
     for (size_t i = 0; i < corners.size(); i++) {
       full_log += String(corners[i].x) + ",";
     }
-    if (full_log.length() > 0 && full_log[full_log.length() - 1] == ',') { full_log = full_log.substring(0, full_log.length() - 1); }
+    if (full_log.length() > 0 && full_log[full_log.length() - 1] == ',') {
+      full_log = full_log.substring(0, full_log.length() - 1);
+    }
     full_log += "\r\n";
 
     full_log += "** corners y: ";
     for (size_t i = 0; i < corners.size(); i++) {
       full_log += String(corners[i].y) + ",";
     }
-    if (full_log.length() > 0 && full_log[full_log.length() - 1] == ',') { full_log = full_log.substring(0, full_log.length() - 1); }
+    if (full_log.length() > 0 && full_log[full_log.length() - 1] == ',') {
+      full_log = full_log.substring(0, full_log.length() - 1);
+    }
     full_log += "\r\n";
 
     full_log += "** centroid: " + String(centroid.x) + "," + String(centroid.y) + "\r\n";
@@ -598,7 +574,7 @@ RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool sho
   int firstCornerIndex = -1;
   int secondCornerIndex = -1;
 
-  // trouver le mur le plus long 
+  // trouver le mur le plus long
   for (size_t i = 0; i < corners.size(); i++) {
     size_t nextIndex = (i + 1) % corners.size();
     double distanceBetweenCorners = distance(corners[i], corners[nextIndex]);
@@ -606,40 +582,36 @@ RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool sho
     if (distanceBetweenCorners > maxDistance) {
       maxDistance = distanceBetweenCorners;
       firstCornerIndex = i;
-      secondCornerIndex = nextIndex;      
+      secondCornerIndex = nextIndex;
     }
-  }  
+  }
 
-  // on a trouvé le mur le plus long 
-  if(firstCornerIndex != -1 && secondCornerIndex != -1) {
+  // on a trouvé le mur le plus long
+  if (firstCornerIndex != -1 && secondCornerIndex != -1) {
     double deltaY = corners[secondCornerIndex].y - corners[firstCornerIndex].y;
     double deltaX = corners[secondCornerIndex].x - corners[firstCornerIndex].x;
 
-    if(corners[secondCornerIndex].y < corners[firstCornerIndex].y) {
-      deltaY = - deltaY;
-      deltaX = - deltaX;
+    if (corners[secondCornerIndex].y < corners[firstCornerIndex].y) {
+      deltaY = -deltaY;
+      deltaX = -deltaX;
     }
 
-    double angleRadians = atan2(deltaY, deltaX); // renvoie un angle entre -PI et +PI
+    double angleRadians = atan2(deltaY, deltaX);  // renvoie un angle entre -PI et +PI
     double adjustedAngleRadians = angleRadians - PI / 2.0;
-    orientation = adjustedAngleRadians; 
+    orientation = adjustedAngleRadians;
   }
 
   // Calcul des coordonnées du robot dans le repère du terrain
   Point coordinates = {
-        -centroid.y * sin(orientation) - centroid.x * cos(orientation),
-        -centroid.y * cos(orientation) + centroid.x * sin(orientation)
-    };
+      -centroid.y * sin(orientation) - centroid.x * cos(orientation),
+      -centroid.y * cos(orientation) + centroid.x * sin(orientation)};
 
- 
   RobotInfos infos_ = RobotInfos(Vector2(coordinates.x, coordinates.y), orientation, points_walls);
 
-  if(show_log) {
-    full_log += "** Infos: x=" + String(infos_.getCoordinates().x() / 10.0) + " cm, y=" + String(infos_.getCoordinates().y() / 10.0)
-      + " cm, orientation: " + String(infos_.getOrientation()) + " deg, nearest wall: " 
-      + String(infos_.getNearestWall().toVector2().distance({0,0}) / 10.0) + " cm\r\n";
-    full_log += "******** END ********"; 
-    SerialDebug.println(full_log);    
+  if (show_log) {
+    full_log += "** Infos: x=" + String(infos_.getCoordinates().x() / 10.0) + " cm, y=" + String(infos_.getCoordinates().y() / 10.0) + " cm, orientation: " + String(infos_.getOrientation()) + " deg, nearest wall: " + String(infos_.getNearestWall().toVector2().distance({0, 0}) / 10.0) + " cm\r\n";
+    full_log += "******** END ********";
+    SerialDebug.println(full_log);
   }
 
   /* Pour n'afficher le log que si les coordonnées ne sont pas correctes : */
@@ -647,20 +619,19 @@ RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool sho
   // double x = 30;
   // double y = 20;
   // if(    coordinates.x / 10.0 > x - tolerance && coordinates.x / 10.0 < x + tolerance
-  //     && coordinates.y / 10.0 > y - tolerance && coordinates.y / 10.0 < y + tolerance) 
-  // {    
+  //     && coordinates.y / 10.0 > y - tolerance && coordinates.y / 10.0 < y + tolerance)
+  // {
   // }
   // else {
-  //   full_log += "****************"; 
-  //   SerialDebug.println(full_log); 
+  //   full_log += "****************";
+  //   SerialDebug.println(full_log);
   // }
 
   // elapsed = millis() - start_millis;
   // SerialDebug.println("Temps traitement des données : " + String(elapsed) + "ms");
-  
+
   return infos_;
 }
-
 
 /***** TESTS ******/
 
@@ -668,22 +639,18 @@ double successPercentageTotal = 0;
 double successPercentageValues = 0;
 
 void checkCoordinates(FieldProperties fP, String text, double x, double y, const char* input) {
-  RobotInfos infos = getFieldInfos(fP, false, false, input);  
-  double tolerance = 8; // cm
+  RobotInfos infos = getFieldInfos(fP, false, false, input);
+  double tolerance = 8;  // cm
   Vector2 robotCoordinates = infos.getCoordinates();
 
-  if(    robotCoordinates.x() / 10.0 > x - tolerance && robotCoordinates.x() / 10.0 < x + tolerance
-      && robotCoordinates.y() / 10.0 > y - tolerance && robotCoordinates.y() / 10.0 < y + tolerance) 
-  {
+  if (robotCoordinates.x() / 10.0 > x - tolerance && robotCoordinates.x() / 10.0 < x + tolerance && robotCoordinates.y() / 10.0 > y - tolerance && robotCoordinates.y() / 10.0 < y + tolerance) {
     double distanceTest = distance({robotCoordinates.x() / 10.0, robotCoordinates.y() / 10.0}, {x, y});
     double successPercentage = ((tolerance - distanceTest) / tolerance) * 100.0;
     successPercentageTotal += successPercentage;
     successPercentageValues++;
     SerialDebug.println("SUCCESS - " + text + " x=" + String(robotCoordinates.x() / 10.0) + ", y=" + String(robotCoordinates.y() / 10.0) + ", " + String(successPercentage) + "%");
-  }
-  else {
-    SerialDebug.println("FAILURE - " + text + " -> Expecting: x=" + String(x) + ", y=" + String(y) 
-        + " ; got: x=" + String(robotCoordinates.x() / 10.0) + ", y=" + String(robotCoordinates.y() / 10.0));
+  } else {
+    SerialDebug.println("FAILURE - " + text + " -> Expecting: x=" + String(x) + ", y=" + String(y) + " ; got: x=" + String(robotCoordinates.x() / 10.0) + ", y=" + String(robotCoordinates.y() / 10.0));
   }
 }
 
@@ -692,7 +659,7 @@ void testsLidar(FieldProperties fP) {
   const char* log = "";
   successPercentageTotal = 0;
   successPercentageValues = 0;
-  
+
   /* Haut du terrain */
   log = "(5564,1480);(5635,1489);(5706,1497);(5777,1506);(5848,1517);(5919,1526);(5990,1533);(6061,1540);(6132,1551);(6203,1565);(6274,1580);(6345,1596);(31547,464);(31620,466);(31693,467);(31766,469);(31839,471);(31912,473);(31985,475);(32058,478);(32131,480);(32204,482);(32277,485);(32350,487);(32424,490);(32494,492);(32564,496);(32634,499);(32704,503);(32774,506);(32844,510);(32914,514);(32984,522);(33054,527);(33124,533);(33194,539);(33275,545);(33346,551);(33417,556);(33488,561);(33559,566);(33630,571);(33701,573);(33772,576);(33843,580);(33914,584);(33985,591);(34056,596);(34131,601);(34207,608);(34283,617);(34359,625);(34435,633);(34511,640);(34587,647);(34663,655);(34739,663);(34815,671);(34891,678);(34967,686);(35047,695);(35118,704);(35189,712);(35260,719);(35331,725);(776,1090);(847,1110);(918,1140);(989,1169);(1060,1221);(1131,1255);(1202,1289);(1273,1325);(1344,1326);(1415,1328);(1486,1326);(1565,1322);(1641,1319);(1717,1316);(1793,1313);(1869,1311);(1945,1309);(2021,1307);(2097,1305);(2173,1304);(2249,1302);(2325,1301);(2401,1300);(2477,1300);(2544,1299);(2611,1299);(2678,1299);(2745,1299);(2812,1300);(2879,1300);(2946,1301);(3013,1302);(3080,1303);(3147,1304);(3214,1306);(3279,1308);(3350,1310);(3421,1310);(3492,1308);(3563,1306);(3634,1308);(3705,1312);(3776,1316);(3847,1320);(3918,1324);(3989,1328);(4060,1332);(4138,1339);(4209,1344);(4280,1350);(4351,1355);(4422,1361);(4493,1367);(4564,1373);(4635,1380);(4706,1387);(4777,1394);(4848,1402);(4919,1409);(4990,1416);(5061,1424);(5132,1431);(5203,1439);(5274,1446);(5345,1454);(5416,1461);(5487,1468);(5558,1476);(5629,1484);(5700,1492);(5771,1503);(5850,1514);(5921,1525);(5992,1533);(6063,1539);(6134,1546);(6205,1558);(6276,1571);(6347,1590);(6418,1606);(6489,1620);(6560,1638);(6631,1655);(6705,1672);(6776,1689);(6847,1707);(6918,1728);(6989,1747);(7060,1764);(7131,1779);(7202,1797);(7273,1822);(7344,1848);(7415,1874);(7486,1902);(7568,1930);(7639,1957);(7710,1989);(7781,2021);(7852,2050);(7923,2085);(7994,2119);(8065,2161);(8136,2201);(8207,2242);(8278,2278);(8349,2317);(8424,2364);(8499,2415);(8574,2409);(8649,239);(8724,246);(8799,2334);(8874,2327);(8949,2318);(9024,2305);(9099,2291);(9174,2278);(9249,2267);(9333,2253);(9404,2240);(9475,2228);(9546,2217);(9617,2207);(9688,2195);(9759,2184);(9830,2172);(9901,2161);(9972,2152);(10043,2142);(10114,2134);(10192,2127);(10263,2120);(10334,2113);(10405,2106);(10476,2099);(10547,2093);(10618,2088);(10689,2082);(10760,2076);(10831,2070);(10902,2064);(10973,732);(11044,731);(11116,729);(11188,729);(11260,729);(11332,731);(11404,733);(11476,735);(11548,736);(11620,737);(11692,737);(11764,739);(11836,754);(11907,774);(11979,792);(12051,2030);(12123,2036);(12195,2038);(12267,2040);(12339,2042);(12411,2045);(12483,2048);(12555,2051);(12627,2054);(12699,2057);(12777,2059);(12848,2063);(12919,2067);(12990,2074);(13061,2075);(13132,2076);(13203,1984);(13274,1858);(13345,1791);(13416,1694);(13487,1643);(13558,1590);(13633,1530);(13709,1485);(13785,1437);(13861,1406);(13937,1363);(14013,1328);(14089,1302);(14165,1285);(14241,1239);(14317,1192);(14393,1158);(14469,1121);(14542,1089);(14613,1067);(14684,1043);(14755,1031);(14826,1021);(14897,998);(14968,966);(15039,949);(15110,930);(15181,910);(15252,891);(15323,874);(15404,857);(15475,842);(15546,834);(15617,827);(15688,819);(15759,807);(15830,793);(15901,780);(15972,768);(16043,756);(16114,745);(16185,735);(16260,726);(16332,717);(16404,709);(16476,702);(16548,694);(16620,686);(16692,677);(16764,670);(16836,662);(16908,655);(16980,647);(17052,640);(17133,633);(17204,623);(17275,610);(18830,521);(18902,519);(18974,518);(19046,520);(19118,521);(19190,521);(19262,519);(19334,518);(19406,516);(19478,515);(19550,515);(19622,514);(19694,513);(19764,512);(19834,511);(19904,510);(19974,509);(20044,509);(20114,508);(20184,507);(20254,507);(20324,506);(20394,506);(20464,506);(20549,506);(20619,506);(20689,506);(20759,506);(20829,506);(20899,506);(20969,506);(21039,506);(21109,507);(21179,507);(21249,508);(21319,508);(21401,509);(21472,510);(21543,511);(21614,512);(21685,514);(21756,515);(21827,517);(21898,518);(21969,519);(22040,521);(22111,523);(22182,525);(22260,527);(22326,529);(22392,531);(22458,533);(22524,535);(22590,537);(22656,539);(22722,541);(22788,543);(22854,545);(22920,547);(22986,550);(23065,553);(23136,556);(23207,559);(23278,563);(23349,567);(23420,571);(23491,575);(23562,579);(23633,583);(23704,587);(23775,591);(23846,598);(23925,603);(23994,609);(24063,614);(24132,620);(24201,626);(24270,633);(24339,639);(24408,646);(24477,652);(24546,659);(24615,666);(24684,673);(24762,680);(24834,688);(24906,695);(24978,700);(25050,701);(25122,701);(25194,696);(25266,688);(25338,678);(25410,668);(25482,658);(25554,649);(25626,641);(25696,633);(25766,625);(25836,618);(25906,610);(25976,603);(26046,596);(26116,589);(26186,583);(26256,577);(26326,572);(26396,567);(26477,562);(26548,556);(26619,551);(26690,549);(26761,545);(26832,541);(26903,537);(26974,533);(27045,529);(27116,525);(27187,521);(27258,517);(27333,514);(27404,510);(27475,506);(27546,503);(27617,500);(27688,497);(27759,494);(27830,492);(27901,489);(27972,487);(28043,485);(28114,483);(28192,480);(28264,478);(28336,476);(28408,474);(28480,472);(28552,470);(28624,468);(28696,466);(28768,464);(28840,462);(28912,461);(28984,460);(29062,459);(29133,457);(29204,456);(29275,454);(29346,453);(29417,452);(29488,451);(29559,450);(29630,449);(29701,448);(29772,448);(29843,448);(29925,447);(29994,447);(30063,446);(30132,446);(30201,446);(30270,446);(30339,446);(30408,446);(30477,446);(30546,446);(30615,447);(30684,447);(30766,448);(30837,449);(30908,450);(30979,451);(31050,452);(31121,453);(31192,454);(31263,456);(31334,458);(31405,460);(31476,462);(31547,464);(31622,465);(31699,467);(31776,469);(31853,471);(31930,473);(32007,475);(32084,477);(32161,480);(32238,483);(32315,485);(32392,488);(32469,490);(32549,493);(32620,496);(32691,499);(32762,503);(32833,507);(32904,511);(32975,515);(33046,522);(33117,527);(33188,534);(33259,541);(33330,547);(33409,553);(33480,559);(33551,564);(33622,566);(33693,569);(33764,573);(33835,577);(33906,580);(33977,584);(34048,591);(34119,597);(34190,603);(34268,610);(34338,619);(34408,627);(34478,635);(34548,642);(34618,649);(34688,656);(34758,663);(34828,671);(34898,679);(34968,687);(35038,694);(35119,703);(35190,713);(35261,720);(35332,721);(772,1090);(843,1112);(914,1139);(985,1167);(1056,1220);(1127,1253);(1198,1281);(1269,1323);(1340,1325);(1411,1327);(1482,1326);(1553,1322);(1638,1319);(1714,1315);(1790,1313);(1866,1310);(1942,1307);(2018,1305);(2094,1304);(2170,1303);(2246,1302);(2322,1301);(2398,1300);(2474,1300);(2548,1300);(2614,1299);(2680,1299);(2746,1299);(2812,1300);(2878,1300);(2944,1301);(3010,1302);(3076,1303);(3142,1304);(3208,1305);(3274,1307);(3347,1308);(3418,1308);(3489,1306);(3560,1305);(3631,1307);(3702,1314);(3773,1315);(3844,1319);(3915,1323);(3986,1327);(4057,1334);(4128,1339);(4205,1344);(4274,1349);(4343,1354);(4412,1360);(4481,1366);(4550,1372);(4619,1379);(4688,1386);(4757,1393);(4826,1400);(4895,1408);(4964,1416)";
   checkCoordinates(fP, "Haut gauche du terrain, orienté vers la gauche", -40, 80, log);
@@ -712,14 +679,12 @@ void testsLidar(FieldProperties fP) {
   log = "(747,552);(27757,489);(27828,485);(27899,481);(27970,477);(28041,473);(28112,469);(28183,466);(28254,462);(28325,459);(28396,455);(28467,452);(28538,448);(28615,445);(28687,442);(28759,439);(28831,436);(28903,434);(28975,432);(29047,430);(29119,428);(29191,426);(29263,424);(29335,421);(29407,419);(29479,417);(29551,415);(29623,413);(29695,412);(29767,410);(29839,409);(29911,408);(29983,407);(30055,406);(30127,405);(30199,404);(30271,403);(30350,402);(30421,402);(30492,401);(30563,401);(30634,401);(30705,401);(30776,400);(30847,400);(30918,400);(30989,400);(31060,400);(31131,400);(31208,400);(31279,400);(31350,400);(31421,400);(31492,400);(31563,401);(31634,401);(31705,401);(31776,402);(31847,402);(31918,402);(31989,403);(32065,403);(32136,403);(32207,404);(32278,405);(32349,407);(32420,409);(32491,410);(32562,411);(32633,412);(32704,413);(32775,414);(32846,415);(32922,416);(32993,417);(33064,418);(33135,419);(33206,420);(33277,422);(33348,424);(33419,425);(33490,427);(33561,428);(33632,429);(33703,430);(33780,430);(33851,430);(33922,430);(33993,430);(34064,431);(34135,433);(34206,439);(34277,445);(34348,451);(34419,456);(34490,457);(34561,461);(34637,465);(34714,469);(34791,476);(34868,481);(34945,487);(35022,493);(35099,500);(35176,506);(35253,506);(35330,505);(775,558);(847,563);(919,563);(991,563);(1063,560);(1135,556);(1210,553);(1281,551);(1352,548);(1423,545);(1494,542);(1565,540);(1636,537);(1707,535);(1778,533);(1849,531);(1920,529);(1991,527);(2065,525);(2136,523);(2207,522);(2278,520);(2349,519);(2420,518);(2491,517);(2562,515);(2633,514);(2704,514);(2775,513);(2846,512);(2925,512);(2996,511);(3067,511);(3138,510);(3209,510);(3280,510);(3351,510);(3422,510);(3493,510);(3564,510);(3635,510);(3706,510);(3777,510);(3849,511);(3921,511);(3993,511);(4065,512);(4137,512);(4209,513);(4281,513);(4353,514);(4425,515);(4497,516);(4569,517);(4640,518);(4711,520);(4782,521);(4853,522);(4924,523);(4995,524);(5066,526);(5137,528);(5208,530);(5279,532);(5350,536);(5421,545);(5492,559);(5563,521);(5634,528);(5705,533);(5776,535);(5847,538);(5918,541);(5989,544);(6060,547);(6131,551);(6202,554);(6273,558);(6347,561);(6419,565);(6491,569);(6563,573);(6635,580);(6707,585);(6779,590);(6851,595);(6923,600);(6995,605);(7067,610);(7139,616);(7210,622);(7279,627);(7348,633);(7417,640);(7486,647);(7555,654);(7624,661);(7693,668);(7762,675);(7831,683);(7900,690);(7969,698);(8048,706);(8119,713);(8190,721);(8261,730);(8332,740);(8403,751);(8474,762);(8545,773);(8616,784);(8687,796);(8758,809);(8829,821);(8907,834);(8977,847);(9047,860);(9117,873);(9187,888);(9257,903);(9327,920);(9397,936);(9467,952);(9537,966);(9607,979);(9677,999);(9759,1021);(9830,1044);(9901,1069);(9972,1092);(10043,1124);(10114,1152);(10185,1184);(10256,1220);(10327,1266);(10398,1303);(10469,1319);(10540,1352);(10615,1403);(10694,1452);(10773,1514);(10852,1570);(10931,1635);(11010,1702);(11089,1784);(11168,1902);(11247,1975);(11326,2107);(11405,2109);(11484,2109);(11560,2101);(11632,2096);(11704,2090);(11776,2088);(11848,2081);(11920,2074);(11992,2067);(12064,212);(12136,214);(12208,2052);(12280,2052);(12352,2054);(12433,2055);(12505,2054);(12577,2051);(12649,2047);(12721,2045);(12793,2043);(12865,2042);(12937,2042);(13009,2042);(13081,2044);(13153,2046);(13225,2049);(13296,2053);(13365,2057);(13434,2060);(13503,2062);(13572,2064);(13641,2066);(13710,2070);(13779,2074);(13848,2078);(13917,2086);(13986,2092);(14055,2097);(14137,2102);(14208,2110);(14279,2117);(14350,2125);(14421,2134);(14492,2142);(14563,2149);(14634,2157);(14705,2167);(14776,2177);(14847,2187);(14918,2196);(14997,2207);(15068,2219);(15139,2231);(15210,2243);(15281,2253);(15352,2265);(15423,2281);(15494,2294);(15565,2308);(15636,2325);(15707,2340);(15778,2356);(15849,2372);(15920,2384);(15991,2389);(16062,2390);(16133,678);(16204,656);(16275,648);(16346,646);(16417,644);(16488,643);(16559,640);(16630,637);(16757,634);(16828,630);(16899,628);(16970,628);(17041,634);(17112,642);(17183,650);(17254,652);(18831,1016);(18902,1016);(18973,1018);(19044,1031);(19115,1052);(19186,1080);(19257,1443);(19332,1441);(19398,1435);(19464,1427);(19530,1420);(19596,1413);(19662,1405);(19728,1398);(19794,1391);(19860,1385);(19926,1379);(19992,1373);(20058,1367);(20137,1362);(20208,1360);(20279,1353);(20350,1351);(20421,1347);(20492,1343);(20563,1340);(20634,1337);(20705,1334);(20776,1331);(20847,1329);(20918,1327);(20997,1325);(21067,1323);(21137,1321);(21207,1319);(21277,1317);(21347,1316);(21417,1316);(21487,1316);(21557,1316);(21627,1316);(21697,1317);(21767,1317);(21852,1318);(21923,1319);(21994,1321);(22065,1322);(22136,1322);(22207,1324);(22278,1325);(22349,1327);(22420,1329);(22491,1332);(22562,1335);(22633,1337);(22712,1340);(22782,1343);(22852,1346);(22922,1349);(22992,1353);(23062,1357);(23132,1364);(23202,1369);(23272,1374);(23342,1379);(23412,1386);(23482,1391);(23567,1397);(23642,1397);(23717,1389);(23792,1314);(23867,1261);(23942,1208);(24017,1172);(24092,1133);(24167,1099);(24242,1065);(24317,1036);(24392,1003);(24469,975);(24541,948);(24613,921);(24685,898);(24757,873);(24829,851);(24901,833);(24973,816);(25045,800);(25117,784);(25189,770);(25261,756);(25329,743);(25394,730);(25459,718);(25524,708);(25589,697);(25654,690);(25719,685);(25784,680);(25849,675);(25914,669);(25979,662);(26044,651);(26112,639);(26184,629);(26256,620);(26328,611);(26400,602);(26472,594);(26544,586);(26616,579);(26688,571);(26760,564);(26832,557);(26904,550);(26976,544);(27042,538);(27108,532);(27174,526);(27240,521);(27306,515);(27372,510);(27438,505);(27504,500);(27570,495);(27636,493);(27702,489);(27780,485);(27851,481);(27922,477);(27993,473);(28064,469);(28135,465);(28206,461);(28277,457);(28348,454);(28419,451);(28490,448);(28561,445);(28640,442);(28716,439);(28792,436);(28868,434);(28944,431);(29020,429);(29096,427);(29172,425);(29248,423);(29324,421);(29400,419);(29476,417);(29549,415);(29621,413);(29693,412);(29765,410);(29837,409);(29909,408);(29981,407);(30053,406);(30125,405);(30197,404);(30269,403);(30341,402);(30422,401);(30493,401);(30564,400);(30635,400);(30706,400);(30777,400);(30848,400);(30919,400);(30990,400);(31061,400);(31132,400);(31203,400);(31282,400);(31353,400);(31424,400);(31495,400);(31566,400);(31637,400);(31708,401);(31779,401);(31850,402);(31921,403);(31992,404);(32063,405);(32137,405);(32208,405);(32279,406);(32350,408);(32421,409);(32492,410);(32563,411);(32634,411);(32705,412);(32776,412);(32847,413);(32918,414);(32997,415);(33068,416);(33139,417);(33210,419);(33281,421);(33352,423);(33423,424);(33494,426);(33565,427);(33636,428);(33707,429);(33778,429);(33857,429);(33928,429);(33999,430);(34070,432);(34141,434);(34212,437);(34283,441);(34354,449);(34425,454);(34496,459);(34567,461);(34638,465);(34713,468);(34785,475);(34857,477);(34929,485);(35001,491);(35073,497);(35145,504);(35217,505);(35289,504);(777,559);(848,561);(919,563);(990,562);(1061,559);(1132,556);(1203,553)";
   checkCoordinates(fP, "Haut droite du terrain, orienté vers la gauche", 40, 80, log);
 
-
   /* Centre du terrain */
   log = "(25550,750);(25621,743);(25692,736);(25763,730);(25834,724);(25905,718);(25976,712);(26047,707);(26118,702);(26189,697);(26260,692);(26331,687);(26409,685);(26480,678);(26551,676);(26622,672);(26693,668);(26764,664);(26835,661);(26906,657);(26977,653);(27048,649);(27119,646);(27190,643);(27279,639);(27350,636);(27421,633);(27492,630);(27563,627);(27634,624);(27705,621);(27776,619);(27847,617);(27918,615);(27989,613);(28060,611);(28138,610);(28209,608);(28280,606);(28351,604);(28422,602);(28493,600);(28564,599);(28635,597);(28706,596);(28777,595);(28848,593);(28919,592);(28994,591);(29065,590);(29136,590);(29207,589);(29278,588);(29349,587);(29420,586);(29491,585);(29562,583);(29633,581);(29704,581);(29775,581);(29853,581);(29922,582);(29991,583);(30060,584);(30129,584);(30198,585);(30267,586);(30336,587);(30405,589);(30474,591);(30543,593);(30612,595);(30691,596);(30762,598);(30833,600);(30904,602);(30975,605);(31046,607);(31117,609);(31188,612);(31259,614);(31330,617);(31401,620);(31472,623);(31550,625);(31622,629);(31694,633);(31766,636);(31838,640);(31910,644);(31982,648);(32054,652);(32126,656);(32198,660);(32270,667);(32342,669);(32423,676);(32494,681);(32565,687);(32636,693);(32707,698);(32778,703);(32849,705);(32920,709);(32991,712);(33062,719);(33133,724);(33204,732);(33283,740);(33354,748);(33425,756);(33496,765);(33567,773);(33638,782);(33709,790);(33780,800);(33851,810);(33922,821);(33993,832);(34064,843);(34142,855);(34218,868);(34294,881);(34370,895);(34446,909);(34522,925);(34598,941);(34674,959);(34750,977);(34826,998);(34902,1016);(34978,1037);(35058,1057);(35129,1079);(35200,1101);(35271,1122);(35342,1150);(790,1284);(861,1282);(932,1278);(1003,1275);(1074,1271);(1145,1267);(1216,1263);(1287,1259);(1358,1256);(1429,1254);(1500,1251);(1581,1249);(1655,1247);(1729,1244);(1803,1242);(1877,1240);(1951,1238);(2025,1237);(2099,1236);(2173,1235);(2247,1234);(2321,1233);(2395,1232);(2473,1232);(2544,1232);(2615,1232);(2686,1232);(2757,1232);(2828,1233);(2899,1234);(2970,1235);(3041,1236);(3112,1238);(3183,1239);(3254,1241);(3332,1243);(3403,1245);(3474,1247);(3545,1250);(3616,1253);(3687,1256);(3758,1260);(3829,1264);(3900,1268);(3971,1272);(4042,1276);(4113,1283);(4191,1288);(4256,1293);(4321,1298);(4386,1304);(4451,1310);(4516,1316);(4581,1323);(4646,1331);(4711,288);(4776,1332);(4841,1346);(4906,1358);(4986,1367);(5058,1375);(5130,1384);(5202,1394);(5274,1402);(5346,1412);(5418,1422);(5490,1431);(5562,1441);(5634,1451);(5706,1463);(5778,1474);(5852,1486);(5922,1497);(5992,1509);(6062,1521);(6132,1535);(6202,1549);(6272,606);(6342,588);(6412,583);(6482,582);(6552,582);(6622,582);(6705,583);(6776,584);(6847,586);(6918,588);(6989,589);(7060,590);(7131,591);(7202,591);(7273,591);(7344,594);(7415,603);(7486,662);(7560,1503);(7636,1511);(7712,1065);(7788,1063);(7864,1059);(7940,1053);(8016,1051);(8092,1047);(8168,1045);(8244,1047);(8320,1063);(8396,1082);(8473,1102);(8541,1376);(8609,1371);(8677,1363);(8745,1354);(8813,1345);(8881,1338);(8949,1331);(9017,1324);(9085,1317);(9153,1311);(9221,1305);(9275,1300);(9346,1295);(9417,1290);(9488,1288);(9559,1284);(9630,1281);(9701,1279);(9772,1277);(9843,1273);(9914,1266);(9985,1260);(10056,1255);(10134,1250);(10210,1248);(10286,1244);(10362,1240);(10438,1236);(10514,1232);(10590,1228);(10666,1225);(10742,1223);(10818,1221);(10894,1221);(10970,1221);(11047,1221);(11118,1221);(11189,1222);(11260,1222);(11331,1221);(11402,1219);(11473,1218);(11544,1217);(11615,1216);(11686,1216);(11757,1216);(11828,1216);(11906,1217);(11977,1217);(12048,1219);(12119,1222);(12190,1226);(12261,1230);(12332,1233);(12403,1237);(12474,1240);(12545,1242);(12616,1245);(12687,1247);(12762,1251);(12833,1254);(12904,1258);(12975,1261);(13046,1265);(13117,1269);(13188,1273);(13259,1277);(13330,1281);(13401,1285);(13472,1292);(13543,1294);(13620,1301);(13692,1307);(13764,1314);(13836,1321);(13908,1328);(13980,1337);(14052,1344);(14124,1351);(14196,1359);(14268,1370);(14340,1382);(14412,1392);(14494,1401);(14569,1412);(14644,1423);(14719,1436);(14794,1447);(14869,1459);(14944,1473);(15019,1486);(15094,1501);(15169,1515);(15244,1529);(15319,1545);(15400,1561);(15471,1579);(15542,1600);(15613,1618);(15684,1634);(15755,1653);(15826,1674);(15897,1698);(15968,1720);(16039,1745);(16110,1776);(16181,1760);(16259,1741);(16330,1717);(16401,1693);(16472,1670);(16543,1650);(16614,1634);(16685,1618);(16756,1601);(16827,1582);(16898,1564);(16969,1548);(17040,1532);(17115,1517);(17186,1505);(17257,1492);(18773,1307);(18845,1302);(18917,1297);(18989,1291);(19061,1286);(19133,1280);(19205,1274);(19277,1269);(19349,1267);(19421,1260);(19493,1258);(19565,1254);(19638,1250);(19714,1246);(19790,1242);(19866,1239);(19942,1236);(20018,1233);(20094,1230);(20170,1228);(20246,1226);(20322,1224);(20398,1222);(20474,1221);(20548,1220);(20620,1219);(20692,1218);(20764,1218);(20836,1218);(20908,1218);(20980,1218);(21052,1218);(21124,1218);(21196,1219);(21268,1220);(21340,1220);(21418,1221);(21490,1222);(21562,1223);(21634,1224);(21706,1225);(21778,1226);(21850,1228);(21922,1229);(21994,1231);(22066,1233);(22138,1235);(22210,1237);(22291,1240);(22359,1243);(22427,1246);(22495,1250);(22563,1254);(22631,1258);(22699,1262);(22767,1266);(22835,1270);(22903,1273);(22971,1275);(23039,1276);(23119,1276);(23190,1247);(23261,1220);(23332,1188);(23403,1164);(23474,1140);(23545,1120);(23616,1098);(23687,1079);(23758,1061);(23829,1042);(23900,1026);(23977,1011);(24042,995);(24107,979);(24172,964);(24237,950);(24302,936);(24367,922);(24432,909);(24497,893);(24562,874);(24627,860);(24692,848);(24773,839);(24844,830);(24915,820);(24986,809);(25057,800);(25128,792);(25199,784);(25270,776);(25341,768);(25412,761);(25483,754);(25554,747);(25635,740);(25711,733);(25787,727);(25863,721);(25939,715);(26015,709);(26091,704);(26167,699);(26243,697);(26319,690);(26395,688);(26471,684);(26544,677);(26610,675);(26676,671);(26742,667);(26808,663);(26874,659);(26940,655);(27006,651);(27072,647);(27138,644);(27204,641);(27270,638);(27350,634);(27421,631);(27492,628);(27563,625);(27634,622);(27705,619);(27776,617);(27847,615);(27918,613);(27989,611);(28060,610);(28131,608);(28205,606);(28276,604);(28347,603);(28418,601);(28489,599);(28560,597);(28631,596);(28702,594);(28773,593);(28844,592);(28915,591);(28986,590);(29065,589);(29136,588);(29207,588);(29278,587);(29349,586);(29420,584);(29491,583);(29562,581);(29633,580);(29704,580);(29775,580);(29846,580);(29920,581);(29991,582);(30062,584);(30133,585);(30204,586);(30275,587);(30346,588);(30417,589);(30488,591);(30559,593);(30630,595);(30701,597);(30780,599);(30851,601);(30922,603);(30993,606);(31064,608);(31135,610);(31206,613);(31277,616);(31348,618);(31419,621);(31490,624);(31561,627);(31638,630);(31714,634);(31790,637);(31866,641);(31942,645);(32018,649);(32094,653);(32170,660);(32246,665);(32322,667);(32398,674);(32474,679);(32544,684);(32615,690);(32686,695);(32757,700);(32828,705);(32899,707);(32970,711);(33041,715);(33112,722);(33183,728);(33254,735);(33325,743);(33407,751);(33478,759);(33549,768);(33620,777);(33691,786);(33762,795);(33833,805);(33904,816);(33975,827);(34046,837);(34117,850);(34188,862);(34265,875);(34335,888);(34405,902);(34475,917);(34545,933);(34615,949);(34685,966);(34755,984);(34825,1001);(34895,1021);(34965,1042);(35035,1064)";
   checkCoordinates(fP, "Centre droite du terrain, orienté vers la droite", 30, 0, log);
 
   log = "(35137,1301);(35208,1304);(35279,1311);(25925,639);(25996,641);(26067,644);(26138,647);(26209,650);(26280,653);(26351,656);(26422,659);(26493,663);(26564,666);(26635,670);(26706,674);(26782,681);(26853,682);(26924,686);(26995,690);(27066,697);(27137,702);(27208,707);(27279,712);(27350,717);(27421,722);(27492,728);(27563,733);(27636,738);(27707,744);(27778,750);(27849,757);(27920,763);(27991,770);(28062,777);(28133,785);(28204,793);(28275,800);(28346,808);(28417,818);(28493,827);(28569,838);(28645,849);(28721,859);(28797,870);(28873,882);(28949,895);(29025,910);(29101,925);(29177,940);(29253,955);(29329,972);(29400,990);(29471,1009);(29542,1027);(29613,1045);(29684,1063);(29755,1082);(29826,1105);(29897,1129);(29968,1153);(30039,1177);(30110,1202);(30181,1227);(30257,1256);(30328,1286);(30399,1318);(30470,1355);(30541,1415);(30612,1408);(30683,1399);(30754,1393);(30825,1385);(30896,1373);(30967,1363);(31038,1354);(31118,1346);(31189,1339);(31260,1331);(31331,1323);(31402,1318);(31473,1313);(31544,1307);(31615,1301);(31686,1296);(31757,1294);(31828,1287);(31899,1282);(31975,1280);(32048,1276);(32121,1272);(32194,1269);(32267,1265);(32340,1261);(32413,1258);(32486,1255);(32559,1253);(32632,1250);(32705,1248);(32778,1246);(32850,1244);(32921,1242);(32992,1241);(33063,1239);(33134,1239);(33205,1238);(33276,1238);(33347,1238);(33418,1239);(33489,1239);(33560,1240);(33631,1241);(33707,1242);(33778,1244);(33849,1246);(33920,1249);(33991,1253);(34062,1257);(34133,1261);(34204,1265);(34275,1268);(34346,1271);(34417,1273);(34488,1275);(34564,1277);(34634,1279);(34704,1281);(34774,1284);(34844,1287);(34914,1290);(34984,1293);(35054,1296);(35124,1299);(35194,1302);(35264,1306);(35334,1310);(758,1466);(829,1477);(900,1488);(971,1498);(1042,1510);(1119,1522);(1190,1535);(1261,1550);(1332,1567);(1403,1584);(1474,1600);(1545,1615);(1616,1626);(1687,1632);(1758,1633);(1829,1625);(1900,1607);(1972,1589);(2043,1571);(2114,1555);(2185,1539);(2256,1523);(2327,1509);(2398,1496);(2469,1483);(2540,1471);(2611,1459);(2682,1447);(2753,1437);(2833,1427);(2905,1418);(2977,1409);(3049,1400);(3121,1390);(3193,1378);(3265,1364);(3337,1350);(3409,1339);(3481,1332);(3553,1326);(3625,1320);(3704,1313);(3775,1307);(3846,1301);(3917,1295);(3988,1290);(4059,1285);(4130,1280);(4201,1278);(4272,1274);(4343,1270);(4414,1266);(4485,1262);(4562,1258);(4633,1255);(4704,1252);(4775,1250);(4846,1247);(4917,1244);(4988,1241);(5059,1238);(5130,1235);(5201,1233);(5272,1230);(5343,1227);(5419,1225);(5490,1223);(5561,1221);(5632,1219);(5703,1217);(5774,1215);(5845,1214);(5916,1213);(5987,1212);(6058,1211);(6129,1209);(6200,1207);(6261,1205);(6332,1204);(6403,1204);(6474,1204);(6545,1206);(6616,1208);(6687,1210);(6758,1212);(6829,1214);(6900,1216);(6971,1218);(7042,1221);(7119,1223);(7185,1226);(7251,1230);(7317,1233);(7383,1237);(7449,1241);(7515,1248);(7581,1250);(7647,1257);(7713,1259);(7779,1263);(7845,1266);(7922,1270);(7993,1273);(8064,1277);(8135,1284);(8206,1291);(8277,1298);(8348,1305);(8419,1313);(8490,1320);(8561,1329);(8632,1337);(8703,1346);(8780,1356);(8855,1367);(8930,1378);(9005,1387);(9080,1397);(9155,1408);(9230,1419);(9305,1432);(9380,1443);(9455,1456);(9530,1469);(9605,1483);(9686,1498);(9757,1513);(9828,1528);(9899,1543);(10041,216);(10183,1614);(10254,1633);(10325,1650);(10396,1668);(10467,1692);(10541,1716);(10619,1727);(10697,1720);(10775,1699);(10853,1680);(10931,1662);(11009,1646);(11087,1629);(11165,1612);(11243,1594);(11321,1579);(11399,1563);(11472,1548);(11543,1533);(11614,1518);(11685,1504);(11756,1492);(11827,1480);(11898,1469);(11969,1459);(12040,1449);(12111,1438);(12182,1428);(12253,1419);(12332,1409);(12403,1401);(12474,1001);(12545,996);(12616,994);(12687,988);(12758,983);(12829,977);(12900,975);(12971,971);(13042,970);(13113,972);(13190,993);(13263,1016);(13336,1043);(13409,1073);(13482,1295);(13555,1289);(13628,1284);(13701,1282);(13774,1278);(13847,1274);(13920,1270);(13993,1267);(14068,1263);(14138,1260);(14208,1258);(14278,1255);(14348,1252);(14418,1250);(14488,1248);(14558,1246);(14628,594);(14698,568);(14768,561);(14838,556);(14919,555);(14990,552);(15061,551);(15132,552);(15203,554);(15274,557);(15345,560);(15416,563);(15487,564);(15558,565);(15629,565);(15700,565);(15779,565);(15850,562);(15921,1242);(15992,1247);(16063,1249);(16134,1252);(16205,1254);(16276,1256);(16347,1259);(16418,1261);(16489,1264);(16560,1268);(16637,1272);(16706,1276);(16775,1280);(16844,1287);(16913,1289);(16982,1296);(17051,1301);(17120,1306);(17189,1312);(18780,981);(18851,959);(18922,948);(18993,936);(19064,922);(19135,909);(19208,897);(19277,885);(19346,874);(19415,863);(19484,852);(19553,842);(19622,833);(19691,823);(19760,814);(19829,805);(19898,797);(19967,789);(20047,781);(20118,774);(20189,767);(20260,761);(20331,754);(20402,747);(20473,741);(20544,735);(20615,733);(20686,729);(20757,725);(20828,722);(20905,718);(20976,711);(21047,706);(21118,700);(21189,694);(21260,689);(21331,684);(21402,682);(21473,678);(21544,674);(21615,670);(21686,663);(21758,661);(21829,657);(21900,653);(21971,650);(22042,646);(22113,642);(22184,638);(22255,634);(22326,631);(22397,628);(22468,624);(22539,621);(22619,619);(22692,616);(22765,614);(22838,612);(22911,611);(22984,609);(23057,609);(23130,609);(23203,610);(23276,611);(23349,612);(23422,613);(23494,612);(23563,611);(23632,610);(23701,608);(23770,607);(23839,606);(23908,605);(23977,604);(24046,603);(24115,602);(24184,602);(24253,602);(24332,602);(24403,601);(24474,601);(24545,601);(24616,601);(24687,601);(24758,601);(24829,602);(24900,602);(24971,603);(25042,604);(25113,605);(25190,606);(25261,608);(25332,610);(25403,613);(25474,617);(25545,624);(25616,626);(25687,630);(25758,633);(25829,636);(25900,638);(25971,640);(26047,643);(26118,645);(26189,648);(26260,651);(26331,654);(26402,657);(26473,660);(26544,663);(26615,667);(26686,671);(26757,675);(26828,679);(26901,683);(26967,687);(27033,694);(27099,699);(27165,704);(27231,706);(27297,713);(27363,718);(27429,724);(27495,729);(27561,735);(27627,740);(27704,746);(27775,751);(27846,758);(27917,765);(27988,772);(28059,780);(28130,788);(28201,796);(28272,804);(28343,812);(28414,822);(28485,833);(28562,844);(28638,854);(28714,863);(28790,874);(28866,887);(28942,900);(29018,913);(29094,929);(29170,944);(29246,960);(29322,977);(29398,995);(29476,1012);(29548,1032);(29620,1051);(29692,1070);(29764,1090);(29836,1113);(29908,1136);(29980,1161);(30052,1187);(30124,1210);(30196,1240);(30268,1263);(30347,1295);(30418,1328);(30489,1376);(30560,1416);(30631,1406);(30702,1398);(30773,1389);(30844,1379);(30915,1370);(30986,1361);(31057,1350);(31128,1342);(31205,1336);(31276,1329);(31347,1322);(31418,1316);(31489,1310);(31560,1304);(31631,1299);(31702,1294);(31773,1289);(31844,1284);(31915,1282);(31986,1278);(32065,1274);(32136,1270);(32207,1267);(32278,1263);(32349,1261);(32420,1258);(32491,1255);(32562,1252);(32633,1249);(32704,1247);(32775,1245);(32846,1243);(32923,1242);(32994,1240);(33065,1238);(33136,1238);(33207,1237);(33278,1237);(33349,1237);(33420,1238);(33491,1238);(33562,1239);(33633,1241);(33704,1242);(33781,1244);(33852,1246);(33923,1249);(33994,1253);(34065,1257);(34136,1261);(34207,1264);(34278,1267);(34349,1270);(34420,1273);(34491,1275);(34562,1277);(34639,1279);(34708,1281);(34777,1284);(34846,1286);(34915,1289);(34984,1293);(35053,1296);(35122,1299);(35191,1303);(35260,1307)";
   checkCoordinates(fP, "Centre gauche du terrain, orienté vers la gauche", -30, 0, log);
-
 
   /* Bas du terrain */
   log = "(35207,2263);(35278,2233);(25619,570);(25690,577);(25761,582);(25832,587);(25903,593);(25974,598);(26045,603);(26116,608);(26187,614);(26258,620);(26329,626);(26400,632);(26475,638);(26546,645);(26617,652);(26688,658);(26759,666);(26830,674);(26901,683);(26972,692);(27043,701);(27114,709);(27185,716);(27256,723);(27332,731);(27403,739);(27474,748);(27545,757);(27616,766);(27687,775);(27758,784);(27829,794);(27900,805);(27971,816);(28042,829);(28113,842);(28190,854);(28263,869);(28336,889);(28409,914);(28482,932);(28555,948);(28628,967);(28701,984);(28774,1002);(28847,1020);(28920,1039);(28993,1060);(29061,1080);(29132,1130);(29203,1164);(29274,1192);(29345,1221);(29416,1252);(29487,1286);(29558,1326);(29629,1362);(29700,1398);(29771,1434);(29842,1475);(29918,1523);(29994,1582);(30070,1650);(30146,1730);(30222,1805);(30298,1897);(30374,2009);(30450,2150);(30526,2144);(30602,2138);(30678,2132);(30754,2125);(30829,2116);(30900,2109);(30971,2104);(31042,2099);(31113,2094);(31184,2089);(31255,2084);(31326,2082);(31397,2078);(31468,2074);(31539,2070);(31610,2067);(31683,2064);(31755,2060);(31827,2056);(31899,2053);(31971,2051);(32043,2051);(32115,2051);(32187,2051);(32259,2051);(32331,2053);(32403,2057);(32475,2064);(32547,2070);(32618,2078);(32689,2084);(32760,2086);(32831,2090);(32902,2093);(32973,2094);(33044,2096);(33115,2099);(33186,2103);(33257,2107);(33328,2115);(33401,2120);(33472,2126);(33543,2128);(33614,2136);(33685,2143);(33756,2150);(33827,2156);(33898,2162);(33969,2171);(34040,2178);(34111,2186);(34182,2197);(34262,2207);(34328,2216);(34394,2225);(34460,2233);(34526,2242);(34592,2252);(34658,2262);(34724,2275);(34790,2289);(34856,2304);(34922,2316);(34988,2322);(35068,2323);(35138,2317);(35208,2266);(35278,2230);(776,1694);(847,1679);(918,1663);(989,1648);(1060,1633);(1131,1618);(1202,1604);(1273,1589);(1344,1574);(1415,1558);(1486,1543);(1557,1527);(1638,1513);(1709,1500);(1780,342);(1851,320);(1922,1464);(1993,1457);(2064,1450);(2135,1442);(2206,1434);(2277,1426);(2348,1419);(2419,1410);(2494,1399);(2570,1191);(2646,1189);(2722,715);(2798,696);(2874,694);(2950,694);(3026,695);(3102,697);(3178,699);(3254,702);(3330,705);(3404,707);(3475,708);(3546,710);(3617,713);(3688,722);(3759,764);(3830,1298);(3901,1309);(3972,1310);(4043,1311);(4114,1310);(4185,1309);(4262,1308);(4326,1308);(4390,1308);(4454,1308);(4518,1308);(4582,1308);(4646,1309);(4710,1309);(4774,1310);(4838,1311);(4902,1312);(4966,1313);(5047,1313);(5118,1314);(5189,1315);(5260,1317);(5331,1319);(5402,1321);(5473,1324);(5544,1327);(5615,1330);(5686,1333);(5757,1335);(5828,1337);(5905,1339);(5976,1341);(6047,1345);(6118,1349);(6189,1356);(6260,1362);(6331,1364);(6402,1371);(6473,1378);(6544,1335);(6615,1284);(6686,1245);(6758,1207);(6829,1166);(6900,1127);(6971,1094);(7042,1065);(7113,1037);(7184,1008);(7255,980);(7326,952);(7397,928);(7468,907);(7539,886);(7620,865);(7692,846);(7764,827);(7836,810);(7908,792);(7980,775);(8052,761);(8124,747);(8196,733);(8268,720);(8340,708);(8412,697);(8494,686);(8565,675);(8636,665);(8707,655);(8778,645);(8849,635);(8920,626);(8991,618);(9062,610);(9133,602);(9204,594);(9275,586);(9350,578);(9421,571);(9492,564);(9563,557);(9634,551);(9705,545);(9776,539);(9847,533);(9918,528);(9989,523);(10060,518);(10131,516);(10208,512);(10279,508);(10350,504);(10421,497);(10492,495);(10563,491);(10634,487);(10705,483);(10776,480);(10847,476);(10918,473);(10989,470);(11065,467);(11136,464);(11207,461);(11278,458);(11349,456);(11420,453);(11491,450);(11562,447);(11633,445);(11704,443);(11775,441);(11846,439);(11927,437);(11998,435);(12069,434);(12140,432);(12211,430);(12282,428);(12353,427);(12424,426);(12495,425);(12566,424);(12637,422);(12708,421);(12779,420);(12850,419);(12921,418);(12992,417);(13063,416);(13134,415);(13205,414);(13276,413);(13347,413);(13418,413);(13489,412);(13560,412);(13641,412);(13718,412);(13795,412);(13872,412);(13949,412);(14026,412);(14103,412);(14180,413);(14257,413);(14334,413);(14411,414);(14488,414);(14562,414);(14633,414);(14704,415);(14775,416);(14846,417);(14917,418);(14988,419);(15059,420);(15130,421);(15201,422);(15272,424);(15343,425);(15418,427);(15489,428);(15560,430);(15631,432);(15702,433);(15773,435);(15844,437);(15915,439);(15986,442);(16057,444);(16128,446);(16199,449);(16273,451);(16345,453);(16417,456);(16489,459);(16561,461);(16633,464);(16705,467);(16777,470);(16849,473);(16921,476);(16993,479);(17065,481);(17136,482);(17207,483);(18829,616);(18900,615);(18971,614);(19042,611);(19113,608);(19184,604);(19255,597);(19326,591);(19397,586);(19468,584);(19539,577);(19610,575);(19691,571);(19763,567);(19835,563);(19907,559);(19979,556);(20051,552);(20123,549);(20195,545);(20267,542);(20339,538);(20411,535);(20483,532);(20562,530);(20633,527);(20704,524);(20775,522);(20846,520);(20917,518);(20988,516);(21059,514);(21130,512);(21201,511);(21272,509);(21343,508);(21422,507);(21493,506);(21564,504);(21635,503);(21706,502);(21777,501);(21848,500);(21919,499);(21990,498);(22061,498);(22132,498);(22203,497);(22280,497);(22351,497);(22422,496);(22493,496);(22564,496);(22635,495);(22706,495);(22777,495);(22848,495);(22919,495);(22990,496);(23061,496);(23133,497);(23204,498);(23275,498);(23346,499);(23417,499);(23488,500);(23559,501);(23630,502);(23701,503);(23772,504);(23843,505);(23914,506);(23991,507);(24056,508);(24121,510);(24186,511);(24251,513);(24316,514);(24381,516);(24446,518);(24511,520);(24576,522);(24641,524);(24706,526);(24779,529);(24850,531);(24921,534);(24992,537);(25063,540);(25134,544);(25205,548);(25276,552);(25347,556);(25418,560);(25489,564);(25560,568);(25638,575);(25714,580);(25790,585);(25866,590);(25942,595);(26018,601);(26094,606);(26170,612);(26246,617);(26322,623);(26398,629);(26474,635);(26548,641);(26614,648);(26680,655);(26746,662);(26812,670);(26878,679);(26944,688);(27010,697);(27076,705);(27142,712);(27208,720);(27274,727);(27350,735);(27421,744);(27492,753);(27563,762);(27634,770);(27705,779);(27776,789);(27847,799);(27918,810);(27989,821);(28060,833);(28131,845);(28208,859);(28284,876);(28360,899);(28436,923);(28512,938);(28588,956);(28664,975);(28740,993);(28816,1011);(28892,1030);(28968,1049);(29044,1072);(29118,1100);(29189,1143);(29260,1178);(29331,1205);(29402,1237);(29473,1267);(29544,1305);(29615,1346);(29686,1375);(29757,1413);(29828,1440);(29899,1496);(29973,1547);(30045,1615);(30117,1686);(30189,1771);(30261,1843);(30333,1934);(30405,2095);(30477,2153);(30549,2144);(30621,2135);(30693,2129);(30765,2123);(30847,2115);(30918,2109);(30989,2102);(31060,2096);(31131,2090);(31202,2085);(31273,2083);(31344,2079);(31415,2075);(31486,2073);(31557,2070);(31628,2067);(31706,2064);(31777,2060);(31848,2056);(31919,2052);(31990,2050);(32061,2050);(32132,2050);(32203,2051);(32274,2053);(32345,2056);(32416,2059);(32487,2067);(32565,2075);(32636,2081);(32707,2086);(32778,2088);(32849,2091);(32920,2094);(32991,2096);(33062,2098);(33133,2102);(33204,2106);(33275,2113);(33346,2118);(33424,2120);(33495,2127);(33566,2132);(33637,2139);(33708,2146);(33779,2152);(33850,2158);(33921,2165);(33992,2172);(34063,2181);(34134,2193);(34205,2204);(34278,2213);(34347,2222);(34416,2229);(34485,2236);(34554,2245);(34623,2255);(34692,2266);(34761,2280);(34830,2296);(34899,2310);(34968,2320);(35037,2326)";
@@ -736,7 +701,6 @@ void testsLidar(FieldProperties fP) {
 
   log = "(7549,580);(7621,587);(7693,594);(7765,601);(7837,608);(7909,615);(7981,623);(8053,631);(8125,640);(8197,649);(8269,657);(8341,666);(8419,675);(8495,685);(8571,695);(8647,706);(8723,717);(8799,729);(8875,742);(8951,755);(9027,769);(9103,784);(9179,798);(9255,813);(9329,829);(9400,846);(9471,865);(9542,885);(9613,905);(9684,925);(9755,948);(9826,972);(9897,999);(9968,1023);(10039,1051);(10110,1079);(10187,1109);(10261,1143);(10335,1180);(10409,1216);(10483,1255);(10557,1299);(10631,1350);(10705,1358);(10779,1357);(10853,1352);(10927,1350);(11001,1344);(11079,1342);(11150,1338);(11221,1335);(11292,1332);(11363,1329);(11434,1327);(11505,1324);(11576,1322);(11647,1320);(11718,1319);(11789,1317);(11860,1316);(11938,1315);(12007,1315);(12076,1314);(12145,1314);(12214,1314);(12283,1314);(12352,1314);(12421,1315);(12490,1316);(12559,1316);(12628,1317);(12697,1317);(12776,1317);(12847,1319);(12918,1321);(12989,1323);(13060,1326);(13131,1329);(13202,1331);(13273,1333);(13344,1335);(13415,1337);(13486,1340);(13557,1344);(13634,1352);(13711,1358);(13788,1364);(13865,1369);(13942,1375);(14019,1382);(14096,1390);(14173,1397);(14250,1404);(14327,1411);(14404,1417);(14481,1419);(14562,1426);(14632,1432);(14702,1437);(14772,1443);(14842,1449);(14912,1456);(14982,1462);(15052,1469);(15122,1475);(15192,1484);(15262,1495);(15332,1508);(15404,1521);(15475,1533);(15546,1544);(15617,1554);(15688,1563);(15759,1576);(15830,1589);(15901,1602);(15972,1618);(16043,1635);(16114,1653);(16185,1671);(16262,1688);(16334,1703);(16406,1719);(16478,1737);(16550,1758);(16622,1779);(16694,1800);(16766,1817);(16838,1835);(16910,1855);(16982,1876);(17054,1900);(17136,1921);(17207,1948);(18844,2293);(18916,2278);(18988,2264);(19060,2250);(19132,2236);(19204,2222);(19276,2208);(19348,2194);(19420,2182);(19492,2171);(19564,2162);(19636,2154);(19761,2146);(19832,2140);(19903,2138);(19974,2134);(20045,2132);(20116,2131);(20187,2129);(20258,2127);(20329,2121);(20400,2115);(20471,2109);(20542,2103);(20619,2098);(20691,2091);(20763,2084);(20835,2077);(20907,2070);(20979,981);(21051,981);(21123,980);(21195,979);(21267,977);(21339,975);(21411,975);(21493,978);(21563,988);(21633,1007);(21703,1026);(21773,1039);(21843,2015);(21913,2014);(21983,2014);(22053,2012);(22123,2003);(22193,2002);(22263,2009);(22348,2023);(22419,2337);(22490,2269);(22561,2024);(22632,696);(22703,655);(22774,649);(22845,644);(22916,642);(22987,641);(23058,641);(23129,643);(23208,647);(23279,651);(23350,654);(23421,657);(23492,659);(23563,663);(23634,671);(23705,1252);(23776,1218);(23847,1183);(23918,1151);(23989,1122);(24063,1096);(24128,1070);(24193,1046);(24258,1021);(24323,996);(24388,974);(24453,942);(24518,918);(24583,898);(24648,882);(24713,867);(24778,852);(24851,838);(24922,825);(24993,811);(25064,796);(25135,784);(25206,772);(25277,762);(25348,751);(25419,741);(25490,732);(25561,724);(25632,715);(25710,707);(25779,699);(25848,691);(25917,683);(25986,676);(26055,668);(26124,661);(26193,654);(26262,646);(26331,637);(26400,629);(26469,621);(26548,615);(26619,609);(26690,604);(26761,599);(26832,594);(26903,589);(26974,587);(27045,580);(27116,578);(27187,574);(27258,570);(27329,566);(27404,562);(27475,558);(27546,555);(27617,551);(27688,548);(27759,545);(27830,542);(27901,539);(27972,536);(28043,534);(28114,531);(28185,529);(28262,526);(28333,524);(28404,522);(28475,520);(28546,518);(28617,516);(28688,514);(28759,512);(28830,510);(28901,509);(28972,507);(29043,505);(29119,504);(29190,503);(29261,502);(29332,501);(29403,500);(29474,499);(29545,498);(29616,498);(29687,497);(29758,497);(29829,497);(29900,497);(29977,496);(30050,496);(30123,496);(30196,496);(30269,496);(30342,496);(30415,496);(30488,496);(30561,497);(30634,497);(30707,497);(30780,498);(30847,498);(30918,499);(30989,500);(31060,500);(31131,499);(31202,498);(31273,496);(31344,493);(31415,194);(31486,174);(31557,164);(31628,163);(31768,164);(31839,498);(31910,508);(31981,514);(32052,516);(32123,520);(32194,523);(32265,526);(32336,529);(32407,532);(32478,535);(32549,538);(32630,541);(32701,545);(32772,549);(32843,553);(32914,556);(32985,560);(33056,563);(33127,567);(33198,570);(33269,573);(33340,577);(33411,581);(33492,585);(33563,589);(33634,593);(33705,600);(33776,601);(33847,605);(33918,609);(33989,613);(34060,620);(34131,625);(34202,631);(34273,637);(34351,645);(34415,654);(34479,659);(34543,659);(34607,658);(34671,652);(34735,646);(34799,638);(34863,629);(34927,621);(34991,614);(35055,607);(35133,600);(35204,593);(35275,586);(687,135);(757,478);(829,479);(900,481);(971,481);(1042,480);(1113,477);(1184,475);(1255,472);(1326,470);(1397,468);(1468,466);(1539,464);(1610,462);(1691,460);(1762,458);(1833,456);(1904,455);(1975,453);(2046,452);(2117,450);(2188,449);(2259,447);(2330,446);(2401,445);(2472,444);(2548,442);(2619,441);(2690,440);(2761,440);(2832,439);(2903,439);(2974,439);(3045,438);(3116,438);(3187,438);(3258,437);(3329,437);(3404,437);(3475,437);(3546,437);(3617,437);(3688,437);(3759,438);(3830,438);(3901,438);(3972,438);(4043,439);(4114,439);(4185,440);(4266,440);(4337,441);(4408,442);(4479,443);(4550,444);(4621,445);(4692,446);(4763,448);(4834,449);(4905,450);(4976,452);(5047,453);(5118,455);(5189,457);(5260,459);(5331,461);(5402,463);(5473,465);(5544,467);(5615,469);(5686,471);(5757,473);(5828,475);(5899,478);(5977,480);(6043,483);(6109,486);(6175,489);(6241,492);(6307,495);(6373,498);(6439,501);(6505,505);(6571,508);(6637,512);(6703,516);(6776,520);(6847,524);(6918,528);(6989,535);(7060,540);(7131,545);(7202,551);(7273,557);(7344,563);(7415,569);(7486,575);(7557,582);(7634,589);(7710,597);(7786,604);(7862,611);(7938,619);(8014,627);(8090,634);(8166,642);(8242,651);(8318,661);(8394,672);(8470,682);(8548,691);(8619,700);(8690,709);(8761,720);(8832,732);(8903,745);(8974,759);(9045,774);(9116,789);(9187,805);(9258,821);(9329,837);(9404,854);(9475,872);(9546,891);(9617,911);(9688,933);(9759,956);(9830,982);(9901,1007);(9972,1032);(10043,1060);(10114,1089);(10185,1118);(10259,1155);(10336,1194);(10413,1229);(10490,1266);(10567,1314);(10644,1359);(10721,1359);(10798,1358);(10875,1353);(10952,1351);(11029,1344);(11106,1342);(11186,1338);(11257,1334);(11328,1331);(11399,1329);(11470,1326);(11541,1324);(11612,1322);(11683,1321);(11754,1320);(11825,1318);(11896,1317);(11967,1315);(12045,1315);(12116,1315);(12187,1315);(12258,1315);(12329,1315);(12400,1315);(12471,1315);(12542,1315);(12613,1316);(12684,1316);(12755,1317);(12826,1318);(12905,1320);(12976,1322);(13047,1324);(13118,1326);(13189,1329);(13260,1331);(13331,1333);(13402,1335);(13473,1337);(13544,1340);(13615,1343);(13686,1350);(13761,1356);(13832,1362);(13903,1368);(13974,1375);(14045,1382);(14116,1390);(14187,1396);(14258,1403);(14329,1410);(14400,1416);(14471,1421);(14542,1427);(14616,1433);(14687,1438);(14758,1444);(14829,1450);(14900,1456);(14971,1462);(15042,1469);(15113,1476);(15184,1485);(15255,1496);(15326,1508);(15397,1520);(15479,1531);(15550,1542);(15621,1554);(15692,1565);(15763,1578);(15834,1593);(15905,1604);(15976,1616);(16047,1632);(16118,1651);(16189,1668);(16260,1684);(16337,1699);(16408,1716);(16479,1737);(16550,1758);(16621,1779);(16692,1800);(16763,1817);(16834,1834);(16905,1854);(16976,1874);(17047,1895);(17118,1921)";
   checkCoordinates(fP, "Bas droite du terrain, orienté vers la droite", 40, -80, log);
-
 
   /* Obstacles */
   log = "(20974,1222);(21045,1253);(21116,1291);(21187,1329);(21258,1368);(21329,1395);(21400,1441);(21471,1486);(21542,1534);(21613,1610);(21684,1706);(21755,1783);(10757,606);(10828,601);(10899,596);(10970,590);(11041,585);(11112,580);(11183,578);(11254,574);(11325,570);(11396,566);(11467,562);(11538,558);(11611,554);(11683,550);(11755,547);(11827,544);(11899,541);(11971,537);(12043,534);(12115,531);(12187,528);(12259,526);(12331,524);(12403,522);(12475,519);(12546,517);(12617,515);(12688,513);(12759,512);(12830,510);(12901,508);(12972,507);(13043,506);(13114,504);(13185,503);(13256,502);(13333,501);(13405,500);(13477,500);(13549,499);(13621,498);(13693,498);(13765,497);(13837,497);(13909,496);(13981,496);(14053,496);(14125,496);(14204,496);(14275,496);(14346,496);(14417,496);(14488,496);(14559,496);(14630,497);(14701,497);(14772,497);(14843,498);(14914,498);(14985,499);(15058,500);(15134,501);(15210,502);(15286,503);(15362,504);(15438,505);(15514,506);(15590,508);(15666,509);(15742,510);(15818,512);(15894,513);(15975,515);(16046,517);(16117,519);(16188,521);(16259,523);(16330,526);(16401,528);(16472,530);(16543,533);(16614,536);(16685,539);(16756,542);(16832,545);(16902,548);(16972,551);(17042,554);(17112,557);(17182,558);(17252,557);(18831,703);(18902,712);(18973,724);(19044,737);(19115,747);(19186,755);(19257,765);(19328,775);(19404,784);(19475,794);(19546,806);(19617,818);(19688,829);(19759,841);(19830,855);(19901,871);(19972,890);(20043,914);(20114,934);(20185,950);(20257,967);(20328,985);(20399,1004);(20470,1023);(20541,1042);(20612,1062);(20683,1084);(20754,1132);(20825,1170);(20896,1199);(20967,1228);(21038,1262);(21115,1301);(21189,1339);(21263,1373);(21337,1408);(21411,1446);(21485,1497);(21559,1540);(21633,1633);(21707,1732);(21781,1814);(21855,1887);(21929,1970);(22000,2079);(22070,2163);(22140,2149);(22210,2139);(22280,2133);(22350,2128);(22420,2123);(22490,2118);(22560,2112);(22630,2110);(22700,2106);(22770,2102);(22847,2098);(22918,2094);(22989,2087);(23060,2080);(23131,357);(23202,344);(23273,339);(23344,340);(23415,341);(23486,340);(23557,338);(23628,336);(23701,334);(23771,333);(23841,333);(23911,333);(23981,333);(24051,333);(24121,335);(24191,338);(24261,341);(24331,344);(24401,346);(24471,347);(24547,346);(24618,345);(24689,343);(24760,341);(24831,339);(24902,339);(24973,339);(25044,339);(25115,340);(25186,341);(25257,342);(25328,344);(25404,346);(25470,348);(25536,350);(25602,352);(25668,356);(25734,363);(25800,369);(25866,376);(25932,388);(25998,405);(26064,417);(26130,426);(26207,433);(26277,442);(26347,451);(26417,460);(26487,468);(26557,473);(26627,2383);(26697,2395);(26767,2400);(26837,2248);(26907,2186);(26977,2155);(27058,2123);(27136,2092);(27214,2058);(27292,2028);(27370,2002);(27448,1946);(27526,1914);(27604,1893);(27682,1876);(27760,1857);(27838,1836);(27916,1816);(27990,1798);(28060,1779);(28130,1758);(28200,1740);(28270,1723);(28340,1706);(28410,1688);(28480,1671);(28550,1655);(28620,1639);(28690,1624);(28760,1610);(28829,1596);(28900,1580);(28971,1565);(29042,1551);(29113,1536);(29184,1520);(29255,1506);(29326,1495);(29397,1484);(29468,1475);(29539,1465);(29610,1455);(29690,1448);(29761,1440);(29832,1433);(29903,1426);(29974,1419);(30045,1413);(30116,1406);(30187,1400);(30258,1394);(30329,1389);(30400,1382);(30471,1376);(30547,1368);(30618,1362);(30689,1355);(30760,1348);(30831,1342);(30902,1340);(30973,1336);(31044,1332);(31115,1330);(31186,1328);(31257,1326);(31328,1324);(31404,1321);(31474,1314);(31544,1312);(31614,1308);(31684,1306);(31754,1304);(31824,1304);(31894,1305);(31964,777);(32034,763);(32104,755);(32174,754);(32254,752);(32326,750);(32398,747);(32470,740);(32542,738);(32614,736);(32686,741);(32758,754);(32830,769);(32902,782);(32974,794);(33046,805);(33115,1316);(33186,1331);(33257,1340);(33328,1346);(33399,1077);(33470,1070);(33541,1062);(33612,1053);(33683,1047);(33754,1045);(33825,1044);(33896,1046);(33976,1056);(34049,1068);(34122,1079);(34195,1087);(34268,1275);(34341,1240);(34414,1203);(34487,1168);(34560,1128);(34633,1092);(34706,214);(34779,215);(34861,215);(34932,967);(35003,946);(35074,924);(35145,901);(35216,879);(35287,857);(35358,830);(774,588);(845,587);(916,584);(987,577);(1058,570);(1129,563);(1200,557);(1271,551);(1342,545);(1417,539);(1487,533);(1557,528);(1627,523);(1697,518);(1767,513);(1837,511);(1907,507);(1977,503);(2047,499);(2117,495);(2187,491);(2258,487);(2329,483);(2400,480);(2471,476);(2542,473);(2613,470);(2684,467);(2755,464);(2826,461);(2897,458);(2968,456);(3039,453);(3117,451);(3188,449);(3259,447);(3330,444);(3401,442);(3472,440);(3543,438);(3614,436);(3685,435);(3756,433);(3827,431);(3898,429);(3976,428);(4048,426);(4120,425);(4192,424);(4264,422);(4336,421);(4408,420);(4480,420);(4552,419);(4624,418);(4696,417);(4768,416);(4847,415);(4918,414);(4989,414);(5060,413);(5131,413);(5202,413);(5273,413);(5344,413);(5415,413);(5486,413);(5557,413);(5628,413);(5705,414);(5775,414);(5845,414);(5915,414);(5985,414);(6055,414);(6125,415);(6195,415);(6265,416);(6335,417);(6405,418);(6475,419);(6544,420);(6615,421);(6686,422);(6757,423);(6828,425);(6899,426);(6970,428);(7041,429);(7112,431);(7183,433);(7254,435);(7325,437);(7406,439);(7472,441);(7538,443);(7604,445);(7670,447);(7736,449);(7802,451);(7868,453);(7934,456);(8000,459);(8066,462);(8132,464);(8212,467);(8283,470);(8354,473);(8425,476);(8496,479);(8567,483);(8638,487);(8709,491);(8780,495);(8851,499);(8922,503);(8993,510);(9070,512);(9147,516);(9224,523);(9301,528);(9378,534);(9455,540);(9532,546);(9609,552);(9686,558);(9763,565);(9840,572);(9917,579);(9991,587);(10067,596);(10143,604);(10219,612);(10295,618);(10371,619);(10447,621);(10523,621);(10599,619);(10675,613);(10751,608);(10827,602);(10900,597);(10971,592);(11042,587);(11113,585);(11184,578);(11255,576);(11326,572);(11397,568);(11468,564);(11539,557);(11610,555);(11681,551);(11759,548);(11830,545);(11901,541);(11972,538);(12043,535);(12114,532);(12185,529);(12256,526);(12327,523);(12398,521);(12469,519);(12540,517);(12619,515);(12690,513);(12761,512);(12832,511);(12903,509);(12974,508);(13045,506);(13116,505);(13187,503);(13258,502);(13329,501);(13400,500);(13477,500);(13548,499);(13619,498);(13690,498);(13761,497);(13832,497);(13903,496);(13974,496);(14045,496);(14116,496);(14187,496);(14258,496);(14326,496);(14397,496);(14468,496);(14539,496);(14610,496);(14681,497);(14752,497);(14823,498);(14894,498);(14965,499);(15036,499);(15107,500);(15188,501);(15261,502);(15334,504);(15407,505);(15480,505);(15553,506);(15626,508);(15699,509);(15772,510);(15845,512);(15918,514);(15991,516);(16066,518);(16137,520);(16208,522);(16279,524);(16350,526);(16421,529);(16492,531);(16563,534);(16634,537);(16705,540);(16776,544);(16847,547);(16918,549);(16989,552);(17060,554);(17131,556);(17202,556);(18829,701);(18900,706);(18971,716);(19042,730);(19113,741);(19184,750);(19255,759);(19326,768);(19397,778);(19468,789);(19545,800);(19611,810);(19677,821);(19743,831);(19809,844);(19875,858);(19941,874);(20007,894);(20073,918);(20139,936);(20205,955);(20271,972)";
@@ -782,7 +746,7 @@ void testsLidar(FieldProperties fP) {
   log = "(2423,178);(2494,178);(2565,179);(2636,181);(2707,184);(2778,186);(2849,189);(2920,192);(2991,195);(3062,199);(3133,203);(3204,210);(13634,481);(13710,488);(13786,489);(13862,493);(13938,504);(14014,168);(14090,158);(14166,157);(14242,157);(14318,552);(14394,561);(14470,573);(14540,585);(14612,595);(14684,606);(14756,618);(14828,630);(14900,643);(14972,656);(15044,669);(15116,684);(15188,700);(15260,717);(15332,735);(15400,754);(15471,773);(15542,389);(15613,375);(15684,370);(15755,369);(15826,368);(15897,366);(15968,359);(16039,357);(16110,354);(16181,351);(16262,349);(16333,348);(16404,348);(16475,349);(16546,351);(16617,353);(16688,357);(16759,365);(16830,371);(16901,379);(16972,1237);(17043,1237);(17115,1237);(17187,1237);(18826,1250);(18898,1251);(18970,295);(19042,294);(19114,288);(19186,1262);(19258,1263);(19330,1267);(19402,1270);(19474,1274);(19546,1277);(19618,1281);(19691,1290);(19762,1300);(19833,1307);(19904,1312);(19975,1313);(20046,1316);(20117,1317);(20188,1317);(20259,1319);(20330,1322);(20401,1329);(20472,1335);(20547,1341);(20618,1347);(20689,1354);(20760,1361);(20831,1368);(20902,1375);(20973,1383);(21044,1391);(21115,1402);(21186,1413);(21257,1423);(21328,1432);(21404,1440);(21474,1446);(21544,1452);(21614,1460);(21684,1469);(21754,1486);(21824,1499);(21894,1507);(21964,288);(22034,1534);(22104,1565);(22174,1585);(22255,1603);(22328,1620);(22401,1639);(22474,1649);(22547,1657);(22620,1666);(22693,1679);(22766,1805);(22839,1825);(22912,1827);(22985,1827);(23058,1825);(23133,1834);(23204,1860);(23275,1915);(23346,1929);(23417,1913);(23772,1740);(23843,1729);(23914,1714);(23994,1698);(24057,1682);(24120,1671);(24183,1660);(24246,1648);(24309,1636);(24372,1625);(24435,1615);(24498,1605);(24561,459);(24624,438);(24687,426);(24758,418);(24830,409);(24902,400);(24974,392);(25046,384);(25118,376);(25190,367);(25262,360);(25334,353);(25406,346);(25478,340);(25550,334);(25623,328);(25695,322);(25767,320);(25839,316);(25911,314);(25983,313);(26055,314);(26127,316);(26199,318);(26271,320);(26343,323);(26415,327);(26490,330);(26560,333);(26630,336);(26700,339);(26770,342);(26840,345);(26910,348);(26980,352);(27050,359);(27120,364);(27190,369);(27260,374);(27332,380);(27403,386);(27474,392);(27545,399);(27616,406);(27687,414);(27758,424);(27829,430);(27900,1477);(27971,1483);(28042,1489);(28113,1495);(28190,1500);(28263,1506);(28336,1512);(28409,1519);(28482,1525);(28555,1530);(28628,1536);(28701,1542);(28774,1549);(28847,1556);(28920,1563);(28993,1571);(29061,1579);(29132,1587);(29203,1594);(29274,1602);(29345,1611);(29416,1618);(29487,1626);(29558,1634);(29629,1642);(29700,1649);(29771,1657);(29842,1667);(29923,1681);(29993,1694);(30063,1705);(30133,1717);(30203,1729);(30273,1742);(30343,1755);(30413,1770);(30483,1785);(30553,1798);(30623,1813);(30693,1827);(30761,1841);(30832,1855);(30903,1868);(30974,1884);(31045,1886);(31116,1887);(31187,1856);(31258,1831);(31329,1811);(31400,1791);(31471,1769);(31542,1747);(31623,1725);(31701,1704);(31779,1684);(31857,1664);(31935,1647);(32013,1632);(32091,1617);(32169,1602);(32247,1587);(32325,1570);(32403,1555);(32481,1541);(32558,1526);(32629,1511);(32700,1499);(32771,1487);(32842,1475);(32913,1463);(32984,1454);(33055,1445);(33126,1436);(33197,1426);(33268,1417);(33339,1409);(33420,1401);(33491,1392);(33562,1384);(33633,1376);(33704,1368);(33775,1360);(33846,1353);(33917,1346);(33988,1339);(34059,1332);(34130,1325);(34201,677);(34274,665);(34344,663);(34414,662);(34484,662);(34554,663);(34624,666);(34694,673);(34764,680);(34834,687);(34904,695);(34974,704);(35044,719);(35118,744);(35189,774);(35260,793);(35331,579);(712,162);(789,201);(860,200);(931,198);(1002,195);(1073,191);(1144,188);(1215,185);(1286,183);(1357,181);(1428,179);(1499,178);(1570,177);(1650,177);(1724,177);(1798,176);(1872,176);(1946,176);(2020,176);(2094,176);(2168,176);(2242,176);(2316,176);(2390,177);(2464,178);(2543,179);(2615,180);(2687,182);(2759,185);(2831,188);(2903,191);(2975,194);(3047,197);(3119,200);(3191,204);(3263,207);(3335,216);(3414,229);(3485,590);(3556,584);(3627,577);(3698,569);(3769,559);(3840,550);(3911,542);(3982,534);(4053,527);(4124,519);(4195,511);(4272,504);(4343,497);(4414,490);(4485,484);(4556,478);(4627,473);(4698,467);(4769,462);(4840,457);(4911,452);(4982,447);(5053,442);(5132,440);(5203,436);(5274,432);(5345,428);(5416,424);(5487,420);(5558,416);(5629,412);(5700,409);(5771,405);(5842,402);(5913,399);(5990,396);(6055,393);(6120,391);(6185,388);(6250,386);(6315,383);(6380,381);(6445,379);(6510,376);(6575,374);(6640,372);(6705,370);(6779,368);(6850,367);(6921,365);(6992,363);(7063,361);(7134,359);(7205,357);(7276,356);(7347,354);(7418,353);(7489,352);(7560,351);(7636,350);(7712,349);(7788,348);(7864,347);(7940,347);(8016,346);(8092,345);(8168,345);(8244,344);(8320,343);(8396,343);(8472,343);(8547,343);(8619,343);(8691,342);(8763,342);(8835,342);(8907,342);(8979,342);(9051,342);(9123,342);(9195,342);(9267,342);(9339,343);(9414,343);(9485,343);(9556,343);(9627,343);(9698,344);(9769,345);(9840,346);(9911,347);(9982,347);(10053,348);(10124,349);(10195,350);(10272,351);(10348,352);(10424,353);(10500,353);(10576,352);(10652,350);(10728,350);(10804,356);(11253,365);(11395,380);(11466,381);(11537,377);(11608,372);(11679,373);(11750,380);(11821,386);(11892,391);(11963,396);(12047,397);(12118,401);(12189,404);(12260,407);(12331,410);(12402,413);(12473,416);(12544,418);(12615,420);(12686,423);(12757,425);(12828,428);(12904,432);(12975,436);(13046,443);(13117,445);(13188,452);(13259,457);(13330,462);(13401,464);(13472,471);(13543,476);(13614,481);(13685,486);(13761,488);(13831,492);(13901,499);(13971,508);(14041,157);(14111,156);(14181,155);(14251,161);(14321,556);(14391,565);(14461,577);(14531,588);(14611,599);(14684,611);(14757,624);(14830,636);(14903,648);(14976,662);(15049,675);(15122,691);(15195,708);(15268,726);(15341,744);(15414,761);(15493,776);(15564,380);(15635,372);(15706,371);(15777,370);(15848,368);(15919,362);(15990,357);(16061,355);(16132,352);(16203,350);(16274,348);(16350,348);(16420,348);(16490,350);(16560,352);(16630,355);(16700,362);(16770,368);(16840,376);(16910,385);(16980,1230);(17050,1232);(17120,1234);(17200,1233);(18815,1249);(18890,1250);(18968,279);(19040,289);(19112,301);(19184,1257);(19256,1259);(19328,1263);(19400,1267);(19472,1271);(19544,1278);(19616,1280);(19688,1287);(19760,1296);(19832,1305);(19903,1311);(19974,1313);(20045,1315);(20116,1316);(20187,1316);(20258,1318);(20329,1321);(20400,1328);(20471,1333);(20542,1338);(20613,1344);(20690,1350);(20756,1357);(20822,1364);(20888,1372);(20954,1380);(21020,1388);(21086,1397);(21152,1406);(21218,1416);(21284,1425);(21350,1434);(21416,1442);(21489,1449);(21560,1457);(21631,1468);(21702,1481);(21773,1494);(21844,1505);(21915,293);(21986,293);(22057,1550);(22128,1577);(22199,1596);(22270,1615);(22340,1632);(22416,1642);(22492,1648);(22568,1660);(22644,1672);(22720,1674);(22796,1819);(22872,1825);(22948,1826);(23024,1826);(23100,1813);(23176,1852)";
   checkCoordinates(fP, "cas particulier mur perpendiculaire à la verticale", 56, -2, log);
 
-  if(successPercentageValues > 0) {
+  if (successPercentageValues > 0) {
     SerialDebug.println("Moyenne: " + String(successPercentageTotal / successPercentageValues) + " %");
   }
 }
