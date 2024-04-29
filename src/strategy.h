@@ -28,6 +28,7 @@ FutureAction chooseStrategy(FieldProperties fP, RobotState cS);
 
 bool leavingField(FieldProperties fP, RobotState cS);
 bool targetInFrontOfRobot(FieldProperties fP, RobotState cS, Vector2 tL);
+bool targetCenterOfRobot(FieldProperties fP, RobotState cS, Vector2 tL);
 bool targetJustInFrontOfRobot(FieldProperties fP, RobotState cS, Vector2 tL);
 bool targetJustBehindOfRobot(FieldProperties fP, RobotState cS, Vector2 tL);
 bool ballIsDetected(FieldProperties fP, RobotState cS);

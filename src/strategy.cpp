@@ -11,7 +11,7 @@ FutureAction::FutureAction(
                          _activeKicker(activeKicker){};
 
 ////////
-const int goalMinDistance = 100;
+const int goalMinDistance = 35;
 FutureAction chooseStrategy(FieldProperties fP, RobotState cS) {
   Vector2 bL = cS.ballPos();
   // Vector2 bL = cS.myPos().distanceRef(cS.ballPos());
@@ -45,9 +45,8 @@ bool leavingField(FieldProperties fP, RobotState cS) {
          (fP.fieldWidth() / 2 - fP.robotRadius() < cS.myPos().x()) ||
          (cS.myPos().y() < -fP.fieldLength() / 2 + fP.robotRadius()) ||
          (fP.fieldLength() / 2 - fP.robotRadius() < cS.myPos().y()) ||
-         (cS.enemyGoalPos().norm() < goalMinDistance && cS.enemyGoalPos().realNorm() > fP.robotRadius()) ||
-         (cS.myGoalPos().norm() < goalMinDistance && cS.myGoalPos().realNorm() > fP.robotRadius());
-  // (cS.nearestWallDistance > 0 && cS.nearestWallDistance < 300);
+         (cS.enemyGoalPos().norm() < goalMinDistance) ||
+         (cS.myGoalPos().norm() < goalMinDistance);
 }
 
 bool ballIsDetected(FieldProperties fP, RobotState cS) {
