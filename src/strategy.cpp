@@ -32,7 +32,7 @@ FutureAction chooseStrategy(FieldProperties fP, RobotState cS) {
     // }
 
   } else {
-    if (targetInFrontOfRobot(fP, cS, bL)) {
+    if (targetInFrontOfRobotFromFront(fP, cS, bL)) {
       return goToBallStrategy(fP, cS);
     } else {
       return goToBallAvoidingBallStrategy(fP, cS, bL);
@@ -54,25 +54,29 @@ bool ballIsDetected(FieldProperties fP, RobotState cS) {
   return true;
 }
 
-bool targetInFrontOfRobot(FieldProperties fP, RobotState cS, Vector2 tL) {
-  float longRobot = (fP.robotRadius() + (fP.ballRadius() * 2)) * 1.5;
+bool targetInFrontOfRobotFromFront(FieldProperties fP, RobotState cS, Vector2 tL) {
+  float longRobot = (fP.robotRadius() * 1.5);
   return tL.y() > longRobot;
 }
 
+bool targetInFrontOfRobotFromMiddle(FieldProperties fP, RobotState cS, Vector2 tL) {
+  return tL.y() > 0;
+}
+
 bool targetCenterOfRobot(FieldProperties fP, RobotState cS, Vector2 tL) {
-  return abs(tL.x()) <= 10;
+  return abs(tL.x()) <= 6;
 }
 
 bool targetJustInFrontOfRobot(FieldProperties fP, RobotState cS, Vector2 tL) {
-  return targetInFrontOfRobot(fP, cS, tL) && targetCenterOfRobot(fP, cS, tL);
+  return targetInFrontOfRobotFromMiddle(fP, cS, tL) && targetCenterOfRobot(fP, cS, tL);
 }
 
 bool targetJustBehindOfRobot(FieldProperties fP, RobotState cS, Vector2 tL) {
-  return (!targetInFrontOfRobot(fP, cS, tL)) && targetCenterOfRobot(fP, cS, tL);
+  return (!targetInFrontOfRobotFromMiddle(fP, cS, tL)) && targetCenterOfRobot(fP, cS, tL);
 }
 
 bool ballIsCaught(FieldProperties fP, RobotState cS, Vector2 bL) {
-  return targetJustInFrontOfRobot(fP, cS, bL) && bL.realNorm() <= fP.robotRadius() + (2 * fP.ballRadius()) + 10;
+  return targetJustInFrontOfRobot(fP, cS, bL) && bL.y() <= (fP.robotRadius() + 2 * fP.ballRadius()) * 1.25;
 }
 
 bool closeToShoot(FieldProperties fP, RobotState cS, Vector2 gL) {
@@ -80,9 +84,9 @@ bool closeToShoot(FieldProperties fP, RobotState cS, Vector2 gL) {
 }
 
 int getBallSidePositionFromRobot(FieldProperties fP, RobotState cS, Vector2 bL) {
-  if (bL.x() < -fP.robotRadius() * 5) {
+  if (bL.x() < -6) {
     return -1;
-  } else if (fP.robotRadius() * 1.5 < bL.x()) {
+  } else if (6 < bL.x()) {
     return 1;
   } else {
     return 0;
