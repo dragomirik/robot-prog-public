@@ -7,11 +7,11 @@ LidarPoint::LidarPoint(uint16_t distance, uint8_t intensity, uint16_t angle)
 
 String LidarPoint::toString() const {
   String result = "(distance=";
-  result += _distance;
+  result += String(_distance);
   result += ", intensity=";
-  result += _intensity;
+  result += String(_intensity);
   result += ", angle=";
-  result += _angle;
+  result += String(_angle);
   result += ")";
   return result;
 }
@@ -32,11 +32,11 @@ LidarPoint MutableLidarPoint::toLidarPoint() const {
 
 String MutableLidarPoint::toString() const {
   String result = "(MutableLidarPoint, ";
-  result += _distance;
+  result += String(_distance);
   result += ", ";
-  result += _intensity;
+  result += String(_intensity);
   result += ", ";
-  result += _angle;
+  result += String(_angle);
   result += ")";
   return result;
 }
@@ -130,7 +130,7 @@ int CircularLidarPointsBuffer::savePointsLocal(int alreadySavedIndex) const {
 
 String CircularLidarPointsBuffer::toString() const {
   String result = "CircularLidarPointsBuffer";
-  result += _size;
+  result += String(_size);
   result += "[";
   for (size_t i = 0; i < sizeFilled(); ++i) {
     result += String(_buffer[i].toString());
