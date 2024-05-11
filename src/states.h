@@ -47,7 +47,7 @@ class ReadingData {
  public:
   ReadingData();
   String toString() const;
-  
+
   inline char typeState() const { return _typeState; }
   inline String xReadingState() const { return _xReadingState; }
   inline String yReadingState() const { return _yReadingState; }

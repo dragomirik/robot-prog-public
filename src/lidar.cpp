@@ -60,7 +60,7 @@ void CircularLidarPointsBuffer::addValue(const LidarPoint newValue) {
   } else {
     indexBefore = _index - 1;
   }
-  if (_buffer[indexBefore].angle()/100 <= 365 && newValue.angle()/100 >= 0) {
+  if (_buffer[indexBefore].angle() / 100 <= 365 && newValue.angle() / 100 >= 0) {
     _lastRoundIndex = _index;
   }
   if (_firstRound) {
@@ -189,10 +189,10 @@ void CircularLidarPointsBuffer::readPointsAndAddToBuffer() {
 }
 
 std::vector<LidarPoint> CircularLidarPointsBuffer::getPoints() {
-  std::vector<LidarPoint> points; 
-   
-  if(true)
-  // if(SerialLidar.available()) 
+  std::vector<LidarPoint> points;
+
+  if (true)
+  // if(SerialLidar.available())
   {
     if (!SerialLidar.find("T,")) {  // equivalent en char de 84 44 (decimal)
       // SerialDebug.println("error, no header-verlen found in RX for the lidar LD19");
@@ -208,18 +208,18 @@ std::vector<LidarPoint> CircularLidarPointsBuffer::getPoints() {
         uint16_t startAngle = _get2BytesLsbMsb(buffer, 2);
 
         LidarPoint data[] = {// no for loop possible due to 'const' in LidarPoint class
-                            LidarPoint(_get2BytesLsbMsb(buffer, 4), buffer[6], 0),
-                            LidarPoint(_get2BytesLsbMsb(buffer, 7), buffer[9], 0),
-                            LidarPoint(_get2BytesLsbMsb(buffer, 10), buffer[12], 0),
-                            LidarPoint(_get2BytesLsbMsb(buffer, 13), buffer[15], 0),
-                            LidarPoint(_get2BytesLsbMsb(buffer, 16), buffer[18], 0),
-                            LidarPoint(_get2BytesLsbMsb(buffer, 19), buffer[21], 0),
-                            LidarPoint(_get2BytesLsbMsb(buffer, 22), buffer[24], 0),
-                            LidarPoint(_get2BytesLsbMsb(buffer, 25), buffer[27], 0),
-                            LidarPoint(_get2BytesLsbMsb(buffer, 28), buffer[30], 0),
-                            LidarPoint(_get2BytesLsbMsb(buffer, 31), buffer[33], 0),
-                            LidarPoint(_get2BytesLsbMsb(buffer, 34), buffer[36], 0),
-                            LidarPoint(_get2BytesLsbMsb(buffer, 37), buffer[39], 0)};
+                             LidarPoint(_get2BytesLsbMsb(buffer, 4), buffer[6], 0),
+                             LidarPoint(_get2BytesLsbMsb(buffer, 7), buffer[9], 0),
+                             LidarPoint(_get2BytesLsbMsb(buffer, 10), buffer[12], 0),
+                             LidarPoint(_get2BytesLsbMsb(buffer, 13), buffer[15], 0),
+                             LidarPoint(_get2BytesLsbMsb(buffer, 16), buffer[18], 0),
+                             LidarPoint(_get2BytesLsbMsb(buffer, 19), buffer[21], 0),
+                             LidarPoint(_get2BytesLsbMsb(buffer, 22), buffer[24], 0),
+                             LidarPoint(_get2BytesLsbMsb(buffer, 25), buffer[27], 0),
+                             LidarPoint(_get2BytesLsbMsb(buffer, 28), buffer[30], 0),
+                             LidarPoint(_get2BytesLsbMsb(buffer, 31), buffer[33], 0),
+                             LidarPoint(_get2BytesLsbMsb(buffer, 34), buffer[36], 0),
+                             LidarPoint(_get2BytesLsbMsb(buffer, 37), buffer[39], 0)};
 
         uint16_t endAngle = _get2BytesLsbMsb(buffer, 40);
         uint16_t timestamp = _get2BytesLsbMsb(buffer, 42);
@@ -237,11 +237,10 @@ std::vector<LidarPoint> CircularLidarPointsBuffer::getPoints() {
         }
       }
     }
-  }
-  else {
+  } else {
     // SerialDebug.println("LIDAR not connected or no data available.");
   }
-  
+
   return points;
 }
 

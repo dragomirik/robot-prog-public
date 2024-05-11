@@ -3,7 +3,7 @@
 #include "../src/lidar.h"
 
 TEST(LidarGetter, CircularLidarPointsBufferAddValueMinimum) {
-  CircularLidarPointsBuffer clpb {5};
+  CircularLidarPointsBuffer clpb{5};
   clpb.addValue(LidarPoint(1, 1, 1));
   clpb.addValue(LidarPoint(2, 2, 2));
   ASSERT_EQ(clpb.getValue(0).angle(), 1);
@@ -23,7 +23,7 @@ TEST(LidarGetter, CircularLidarPointsBufferAddValueMinimum) {
 }
 
 TEST(LidarGetter, CircularLidarPointsBufferAddValueMaximum) {
-  CircularLidarPointsBuffer clpb {5};
+  CircularLidarPointsBuffer clpb{5};
   clpb.addValue(LidarPoint(1, 1, 1));
   clpb.addValue(LidarPoint(2, 2, 2));
   ASSERT_EQ(clpb.getValue(0).angle(), 1);
@@ -43,13 +43,13 @@ TEST(LidarGetter, CircularLidarPointsBufferAddValueMaximum) {
 }
 
 TEST(LidarGetter, CircularLidarPointsBufferForLoop) {
-  CircularLidarPointsBuffer clpb {5};
+  CircularLidarPointsBuffer clpb{5};
   clpb.addValue(LidarPoint(1, 1, 1));
   clpb.addValue(LidarPoint(2, 2, 2));
   clpb.addValue(LidarPoint(3, 3, 3));
   size_t j = 0;
   for (size_t i = 0; i < clpb.sizeFilled(); i++) {
-    ASSERT_EQ(clpb.getValue(i).angle(), i+1) << clpb.toString() << i;
+    ASSERT_EQ(clpb.getValue(i).angle(), i + 1) << clpb.toString() << i;
     j++;
   }
   ASSERT_EQ(j, 3);
@@ -59,9 +59,9 @@ TEST(LidarGetter, CircularLidarPointsBufferForLoop) {
   clpb.addValue(LidarPoint(7, 7, 7));
   size_t k = 0;
 
-  //REWRITE
+  // REWRITE
   for (size_t i = 0; i < clpb.sizeFilled(); i++) {
-    size_t b = i+1;
+    size_t b = i + 1;
     if (b == 1) {
       b = 6;
     } else if (b == 2) {
@@ -72,4 +72,3 @@ TEST(LidarGetter, CircularLidarPointsBufferForLoop) {
   }
   ASSERT_EQ(k, 5);
 }
-

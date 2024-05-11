@@ -40,4 +40,3 @@ Vector2[] convCoordonneesCartesiennes(LidarPoint[] lidarPoints, size_t nbrVal) {
 houghTransform(std::vector<MutableVector2> points, int nbPoints, int distanceMax);
 
 HoughLine[] sortLines(HoughLine[]);
-

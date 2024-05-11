@@ -97,10 +97,10 @@ TEST(Vector2, normZero) {
   ASSERT_EQ(Vector2(0, 0).norm(), 0);
 }
 
-//TODO realNorm
-//TODO angle
-//TODO rotate
-//TODO transformToUV
+// TODO realNorm
+// TODO angle
+// TODO rotate
+// TODO transformToUV
 
 TEST(MutableVector2, toStringContainsInfo) {
   std::string str = MutableVector2(Vector2(1.5, -20)).toString();
@@ -165,7 +165,6 @@ TEST(DegreeRadians, degreeFromRadiansRound) {
   ASSERT_EQ(Degree(Radians(3.14159265358979323)), 180);
 }
 
-
 TEST(DegreeRadians, radiansFromDegree) {
   ASSERT_NEAR(Radians(Degree(56.3)), 0.98262036887280755181, 1e-5);
 }
@@ -182,13 +181,13 @@ TEST(DegreeRadians, radiansFromDegreeRound) {
   ASSERT_NEAR(Radians(Degree(180)), 3.14159265358979323, 1e-5);
 }
 
-//TODO tests with functions
+// TODO tests with functions
 
 TEST(ResultOrErrorOptional, ResultOrErrorValue) {
   ResultOrError<int> r(5);
   ASSERT_FALSE(r.hasError());
   ASSERT_EQ(r.value(), 5);
-} 
+}
 
 TEST(ResultOrErrorOptional, ResultOrErrorError) {
   ResultOrError<int> r("error");
@@ -200,7 +199,7 @@ TEST(ResultOrErrorOptional, OptionalValue) {
   Optional<int> r(5);
   ASSERT_TRUE(r.hasValue());
   ASSERT_EQ(r.value(), 5);
-} 
+}
 
 TEST(ResultOrErrorOptional, OptionalNoValue) {
   Optional<int> r;

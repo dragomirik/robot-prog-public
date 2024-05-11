@@ -11,7 +11,7 @@ class HoughLine {
   const double length;
 
  public:
- HoughLine(const double rho, const double theta, const double nb_accumulators, const double length);
+  HoughLine(const double rho, const double theta, const double nb_accumulators, const double length);
 }
 
 class RobotPosition {

@@ -1,18 +1,18 @@
 #ifndef FAKE_ARDUINO_H
 #define FAKE_ARDUINO_H
 
-#include <cmath>
 #include <cctype>
-#include <queue>
-#include <string>
+#include <cmath>
 #include <cstdint>
+#include <queue>
 #include <stdexcept>
+#include <string>
 
 #define PI 3.1415926535897932384626433832795
 #define DEG_TO_RAD 0.017453292519943295769236907684886
 #define RAD_TO_DEG 57.295779513082320876798154814105
 #define HIGH 0x1
-#define LOW  0x0
+#define LOW 0x0
 #define INPUT 0x0
 #define OUTPUT 0x1
 
@@ -56,7 +56,7 @@ class SerialClass {
   void debugPrint(const String& str);
   void debugPrintln(const String& str);
   bool find(String str);
-  byte readBytes(byte *buffer, int length);
+  byte readBytes(byte* buffer, int length);
 };
 
 extern SerialClass Serial;
@@ -69,25 +69,28 @@ extern SerialClass Serial6;
 extern SerialClass Serial7;
 extern SerialClass Serial8;
 
-enum class PinState { pINPUT, pOUPUT, pUNDEF};
+enum class PinState { pINPUT,
+                      pOUPUT,
+                      pUNDEF };
 
 class PinsClass {
-  private:
-    std::vector<PinState> pinsMode;
-    std::vector<int> pinsValue;
-  public:
-    PinsClass(int numPins);
-    void pinMode(int pin, PinState pinState);
-    bool inRange(int pin);
-    void assertInRange(int pin);
-    PinState getPinState(int pin);
-    void assertIsOfState(int pin, PinState wantedPinState);
-    void analogWrite(int pin, int value);
-    void digitalWrite(int pin, int value);
-    int analogRead(int pin);
-    int digitalRead(int pin);
-    void debugWrite(int pin, int value);
-    int debugRead(int pin);
+ private:
+  std::vector<PinState> pinsMode;
+  std::vector<int> pinsValue;
+
+ public:
+  PinsClass(int numPins);
+  void pinMode(int pin, PinState pinState);
+  bool inRange(int pin);
+  void assertInRange(int pin);
+  PinState getPinState(int pin);
+  void assertIsOfState(int pin, PinState wantedPinState);
+  void analogWrite(int pin, int value);
+  void digitalWrite(int pin, int value);
+  int analogRead(int pin);
+  int digitalRead(int pin);
+  void debugWrite(int pin, int value);
+  int debugRead(int pin);
 };
 
 extern PinsClass fakeArduinoPins;

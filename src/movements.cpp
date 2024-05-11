@@ -9,7 +9,7 @@ MotorMov::MotorMov(
     : _pinPWM(pinPWM),
       _pinCWCCW(pinCWCCW),
       _pinFG(pinFG),
-      _angleAxisKicker(angleAxisKicker - (PI/2)) {
+      _angleAxisKicker(angleAxisKicker - (PI / 2)) {
   pinMode(_pinPWM, OUTPUT);
   pinMode(_pinCWCCW, OUTPUT);
   // pinMode(_pinFG, INPUT);
@@ -93,7 +93,6 @@ void Motors::goTo(Vector2 vector, int celerity, float orientation) const {
   if (vector.norm() < 3) {  // TODO faire de 3 un parametre global
     fullStop();
   } else {
-
     // The speed to be sent to the motors is calculated
     float MFRcelerity = cos(vector.angle() - frontRight().angleAxisKicker());
     float MFLcelerity = cos(vector.angle() - frontLeft().angleAxisKicker());
@@ -103,7 +102,7 @@ void Motors::goTo(Vector2 vector, int celerity, float orientation) const {
     // The ratio to be used to calculate the speeds to be sent to the motors is calculated, taking into account the desired speed.
     float maximum = (max(abs(MFRcelerity), max(abs(MFLcelerity), max(abs(MBRcelerity), abs(MBLcelerity)))));
     float rapport = (celerity / 255.0) / maximum;
-    float rotation = orientation*celerity*0.01;
+    float rotation = orientation * celerity * 0.01;
 
     // SerialDebug.println("rapport : " + String(rapport));
 
@@ -113,10 +112,10 @@ void Motors::goTo(Vector2 vector, int celerity, float orientation) const {
     float speedFL = MFLcelerity * rapport * 255;
     float speedBR = MBRcelerity * rapport * 255;
     float speedBL = MBLcelerity * rapport * 255;
-    
-    frontRight().move(speedFR-rotation);
-    frontLeft().move(speedFL-rotation);
-    backRight().move(speedBR-rotation);
-    backLeft().move(speedBL-rotation);
+
+    frontRight().move(speedFR - rotation);
+    frontLeft().move(speedFL - rotation);
+    backRight().move(speedBR - rotation);
+    backLeft().move(speedBL - rotation);
   }
 }
