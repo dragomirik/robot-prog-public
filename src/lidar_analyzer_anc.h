@@ -5,9 +5,9 @@
 #include "utilities.h"
 #include "strategy.h"
 
-class RobotInfos {
+class LidarInfos {
   public:
-    RobotInfos(const Vector2& coordinates, double orientation, std::vector<MutableVector2> walls)
+    LidarInfos(const Vector2& coordinates, double orientation, std::vector<Vector2> walls)
         : coordinates(coordinates), orientation(orientation), walls(walls) {}
 
   /* Retourne les coordonnées du robot dans le référentiel du terrain. Centre du terrain: x=0, y=0. 
@@ -25,20 +25,20 @@ class RobotInfos {
   }
 
   /* retourne les murs (le point le plus proche de chaque mur) */
-  std::vector<MutableVector2> getWalls() {
+  std::vector<Vector2> getWalls() {
     return walls;
   }
 
   /* Retourne le point du mur le plus proche */
-  MutableVector2 getNearestWall() {
+  Vector2 getNearestWall() {
     if (walls.empty()) {
-      return MutableVector2(-9999, -9999);
+      return Vector2({-9999, -9999});
     }
 
     float nearest = 100000;
     size_t indice;
     for (size_t i = 0; i < walls.size(); i++) {
-      float distance = walls[i].toVector2().distance({0, 0});
+      float distance = walls[i].distance({0, 0});
       if (distance < nearest) {
         nearest = distance;
         indice = i;
@@ -50,10 +50,10 @@ class RobotInfos {
   private: 
     Vector2 coordinates;
     double orientation;
-    std::vector<MutableVector2> walls;
+    std::vector<Vector2> walls;
 };
 
-RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar, bool show_log, const char* input);
+LidarInfos getLidarInfos(FieldProperties fP, bool readFromLidar = true, bool show_log = false, const char* input = nullptr);
 void testsLidar(FieldProperties fP);
 
 #endif
