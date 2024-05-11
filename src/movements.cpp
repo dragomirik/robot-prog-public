@@ -103,7 +103,7 @@ void Motors::goTo(Vector2 vector, int celerity, float orientation) const {
     // The ratio to be used to calculate the speeds to be sent to the motors is calculated, taking into account the desired speed.
     float maximum = (max(abs(MFRcelerity), max(abs(MFLcelerity), max(abs(MBRcelerity), abs(MBLcelerity)))));
     float rapport = (celerity / 255.0) / maximum;
-    float rotation = orientation*celerity*0.8;
+    float rotation = orientation*celerity*0.01;
 
     // SerialDebug.println("rapport : " + String(rapport));
 
