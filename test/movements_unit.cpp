@@ -4,8 +4,9 @@
 
 #include <Arduino.h>
 
+/*
 TEST(Motors, verifyPins) {
-  fakeArduinoPins.pinMode()
-  MotorMov mV = MotorMov()
-  
+  fakeArduinoPins.pinMode();
+  MotorMov mV = MotorMov();
 }
+*/
