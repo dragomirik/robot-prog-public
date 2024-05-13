@@ -1,4 +1,4 @@
-#include "lidar_analyzer.h"
+/* #include "lidar_analyzer.h"
 
 HoughLine::HoughLine(const double rho, const double theta, const double nb_accumulators, const double length)
     : rho(rho), theta(theta), nb_accumulators(nb_accumulators), length(length) {}
@@ -40,3 +40,4 @@ Vector2[] convCoordonneesCartesiennes(LidarPoint[] lidarPoints, size_t nbrVal) {
 houghTransform(std::vector<MutableVector2> points, int nbPoints, int distanceMax);
 
 HoughLine[] sortLines(HoughLine[]);
+ */

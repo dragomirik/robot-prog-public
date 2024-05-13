@@ -1,4 +1,4 @@
-#ifndef LIDAR_ANALYZER2_H
+/* #ifndef LIDAR_ANALYZER2_H
 #define LIDAR_ANALYZER2_H
 
 #include "utilities.h"
@@ -12,7 +12,7 @@ class HoughLine {
 
  public:
   HoughLine(const double rho, const double theta, const double nb_accumulators, const double length);
-}
+};
 
 class RobotPosition {
  private:
@@ -30,6 +30,6 @@ class RobotPosition {
 
   /* retourne les murs (le point le plus proche de chaque mur) */
   inline std::vector<MutableVector2> getWalls() { return walls; }
-}
+};
 
-#endif
+#endif */

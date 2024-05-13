@@ -1,11 +1,12 @@
 #include <string>
 
+#include "utilities.h"
+#include "logger.h"
 #include "lidar.h"
 #include "lidar_analyzer_anc.h"
 #include "movements.h"
 #include "states.h"
 #include "strategy.h"
-#include "utilities.h"
 
 const FieldProperties fieldProperties = FieldProperties(
     243,               // fieldLength
@@ -46,6 +47,11 @@ void setup() {
 
   SerialCam.setTimeout(10);
   SerialLidar.setTimeout(10);
+
+  setupLog(NoteLevel);
+  log_a(DebugLevel, "ok", "f1");
+  log_a(DebugLevel, "ok", "f2");
+  log_a(DebugLevel, "ok", "f3");
 }
 
 std::string extractLastCompleteSequence(const char* buffer) {
