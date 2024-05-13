@@ -266,4 +266,3 @@ TEST(fakeArduino, PinsClassDigitalReadWrite) {
   debugPins.debugWrite(1, LOW);
   ASSERT_EQ(debugPins.analogRead(1), LOW);
 }
-

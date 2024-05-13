@@ -4,8 +4,8 @@
 #include <Arduino.h>
 
 #define SerialDebug Serial
-#define SerialCam Serial8
-#define SerialLidar Serial2
+#define SerialCam Serial2
+#define SerialLidar Serial6
 
 class Radians;
 class Degree;
@@ -92,8 +92,8 @@ class ResultOrError {
   const bool _isError;
 
  public:
-  ResultOrError(T value): _value(value), _isError(false) {}
-  ResultOrError(String errorMessage): _errorMessage(errorMessage), _isError(true) {}
+  ResultOrError(T value) : _value(value), _isError(false) {}
+  ResultOrError(String errorMessage) : _errorMessage(errorMessage), _isError(true) {}
 
   inline bool hasError() const { return _isError; };
   inline T value() const { return _value; };
@@ -107,8 +107,8 @@ class Optional {
   const bool _hasValue;
 
  public:
-  Optional(): _hasValue(false) {}
-  Optional(T value): _value(value), _hasValue(true) {}
+  Optional() : _hasValue(false) {}
+  Optional(T value) : _value(value), _hasValue(true) {}
 
   inline bool hasValue() const { return _hasValue; }
   inline T value() const { return _value; }

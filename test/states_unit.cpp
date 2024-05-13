@@ -4,15 +4,14 @@
 
 TEST(FieldProperties, accessData) {
   FieldProperties fP = FieldProperties(
-    1,
-    2,
-    3,
-    4,
-    Vector2(5, 5),
-    Vector2(6, 6),
-    7,
-    8
-  );
+      1,
+      2,
+      3,
+      4,
+      Vector2(5, 5),
+      Vector2(6, 6),
+      7,
+      8);
   ASSERT_EQ(fP.fieldLength(), 1);
   ASSERT_EQ(fP.fieldWidth(), 2);
   ASSERT_EQ(fP.spaceBeforeLineSide(), 3);
@@ -69,12 +68,11 @@ TEST(ReadingData, writinginXY) {
 
 TEST(RobotState, accessData) {
   RobotState cS = RobotState(
-    Vector2(1, 1),
-    Vector2(2, 2),
-    Vector2(3, 3),
-    Vector2(4, 4),
-    Vector2(5, 5)
-  );
+      Vector2(1, 1),
+      Vector2(2, 2),
+      Vector2(3, 3),
+      Vector2(4, 4),
+      Vector2(5, 5));
   ASSERT_EQ(cS.ballPos(), Vector2(1, 1));
   ASSERT_EQ(cS.myPos(), Vector2(2, 2));
   ASSERT_EQ(cS.partnerPos(), Vector2(3, 3));
@@ -84,12 +82,11 @@ TEST(RobotState, accessData) {
 
 TEST(RobotState, toString) {
   RobotState cS = RobotState(
-    Vector2(1, 1.5),
-    Vector2(2, 2.5),
-    Vector2(3, 3.5),
-    Vector2(4, 4.5),
-    Vector2(5, 5.5)
-  );
+      Vector2(1, 1.5),
+      Vector2(2, 2.5),
+      Vector2(3, 3.5),
+      Vector2(4, 4.5),
+      Vector2(5, 5.5));
   std::string str = cS.toString();
   size_t ballPosX = str.find(String(cS.ballPos().x()));
   ASSERT_TRUE(ballPosX != std::string::npos);

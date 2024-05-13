@@ -1,5 +1,6 @@
+#include "lidar_analyzer_anc.h"
+
 #include "lidar.h"
-#include "lidar_analyzer.h"
 #include "strategy.h"
 
 const int LidarDistanceMin = 100;  // on ne prend pas les points < 10cm quand on lit les données du Lidar
@@ -78,7 +79,7 @@ void sortPointsClockwise(std::vector<Point>& points, Point center) {
 /* Hough Transform
  *  algo : https://www.keymolen.com/2013/05/hough-transformation-c-implementation.html
  */
-std::vector<HoughLine> houghTransform(std::vector<MutableVector2> points, int nbPoints, int numRho) {
+std::vector<HoughLine> houghTransform(std::vector<Vector2> points, int nbPoints, int numRho) {
   std::vector<HoughLine> lines;
   const int numTheta = 180;
   double thetaStep = degreStep * PI / 180.0;
@@ -87,7 +88,7 @@ std::vector<HoughLine> houghTransform(std::vector<MutableVector2> points, int nb
 
   // calcul de rho pour chaque valeur de theta
   for (int i = 0; i < nbPoints; i++) {
-    MutableVector2 point = points[i];
+    Vector2 point = points[i];
     for (int thetaIndex = 0; thetaIndex < numTheta; thetaIndex += degreStep) {
       double theta = thetaIndex * thetaStep / degreStep;
       int rhoIndex = round((numRho + (point.x() * cos(theta) + point.y() * sin(theta))) / rhoStep);
@@ -120,19 +121,73 @@ std::vector<HoughLine> houghTransform(std::vector<MutableVector2> points, int nb
   return lines;
 }
 
+// distance entre deux Points
 float distance(const Point& p1, const Point& p2) {
   return sqrt(pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2));
 }
 
-// Fonction pour convertir la ligne de Hough en y = ax + b
-void convertHoughLineToSlopeIntercept(const HoughLine& line, double& a, double& b) {
-  a = -1.0 / tan(line.theta);
-  b = line.rho / sin(line.theta);
+// conversion d'une ligne de Hough (rho, theta) en droite d'équation ax + by + c = 0
+void convertHoughLineToGeneralForm(const HoughLine& line, double& a, double& b, double& c) {
+  a = cos(line.theta);
+  b = sin(line.theta);
+  c = -line.rho;
 }
 
 // distance d'un point à une droite d'équation ax + by + c = 0
-double calculateDistanceToLine(const MutableVector2& point, double a, double b, double c) {
+double calculateDistanceToLine(const Vector2& point, double a, double b, double c) {
   return abs(a * point.x() + b * point.y() + c) / sqrt(a * a + b * b);
+}
+
+// calcul la distance entre deux lignes de Hough
+double calculateDistanceBetweenLines(HoughLine l1, HoughLine l2) {
+  float x1 = l1.rho * cos(l1.theta);
+  float y1 = -l1.rho * sin(l1.theta);
+  Vector2 v1 = Vector2(x1, y1);
+
+  float x2 = l2.rho * cos(l2.theta);
+  float y2 = -l2.rho * sin(l2.theta);
+  Vector2 v2 = Vector2(x2, y2);
+
+  return v1.distance(v2);
+}
+
+// acos qui retourne toujours une valeur valide
+double safe_acos(double value) {
+  if (value <= -1.0) {
+    return PI;
+  } else if (value >= 1.0) {
+    return 0;
+  } else {
+    return acos(value);
+  }
+}
+
+// Calcul l'angle entre deux droites d'équation ax + by + c = 0
+double calculateAngleBetweenLines(double a1, double b1, double c1, double a2, double b2, double c2) {
+  // Calculer les vecteurs directeurs des droites
+  double v1x = b1;
+  double v1y = -a1;
+  double v2x = b2;
+  double v2y = -a2;
+
+  // Calculer le produit scalaire des vecteurs directeurs
+  double dotProduct = v1x * v2x + v1y * v2y;
+
+  // Calculer les normes des vecteurs directeurs
+  double norm1 = sqrt(v1x * v1x + v1y * v1y);
+  double norm2 = sqrt(v2x * v2x + v2y * v2y);
+
+  if (norm1 * norm2 == 0) {  // pour éviter une division par 0
+    return PI / 4.0;
+  }
+
+  // Calculer l'angle entre les droites en radians
+  double angle = safe_acos(dotProduct / (norm1 * norm2));
+
+  if (angle > PI / 2.0) {
+    return PI - angle;  // retourne toujours l'angle aigu
+  }
+  return angle;
 }
 
 /*
@@ -142,9 +197,9 @@ double calculateDistanceToLine(const MutableVector2& point, double a, double b, 
  * show_log: true pour afficher le log qui permet d'afficher ensuite les points et les murs dans le programme python
  * input: utilisée pour les tests, contient les données du Lidar
  */
-RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool show_log = false, const char* input = nullptr) {
+LidarInfos getLidarInfos(FieldProperties fP, bool readFromLidar = true, bool show_log = false, const char* input = nullptr) {
   double orientation = -9999;
-  std::vector<MutableVector2> points_walls;
+  std::vector<Vector2> points_walls;
   const int nb_tours_lidar = 55;
   MutableLidarPoint points2[nb_tours_lidar * 12];
   int nb_points = 0;
@@ -169,11 +224,12 @@ RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool sho
       }
     }
 
-    unsigned long elapsed = millis() - start_millis;
+    // unsigned long elapsed = millis() - start_millis;
     // SerialDebug.println("Temps de récupération des données du lidar : " + String(elapsed) + "ms");
+    // start_millis = millis();
   } else {  // pour tester sans lidar
     if (input == nullptr) {
-      input = "(22331,403);(22402,404);(22473,404);(22544,405);(22615,406);(22686,408);(22757,409);(22828,410);(22899,412);(22970,413);(23041,414);(23112,416);(28761,1078);(28832,1075);(28903,1072);(28974,1069);(29045,1066);(29116,1064);(29187,1062);(29258,1060);(29329,1058);(29400,1056);(29471,1054);(29542,1052);(29622,1051);(29686,1050);(29750,1049);(29814,1049);(29878,1048);(29942,1048);(30006,1048);(30070,1048);(30134,1048);(30198,1048);(30262,1048);(30326,1048);(30404,1049);(30475,1049);(30546,1050);(30617,1051);(30688,1051);(30759,1050);(30830,1049);(30901,1049);(30972,1049);(31043,1049);(31114,1051);(31185,1054);(31262,1057);(31339,1060);(31416,1063);(31493,1066);(31570,1070);(31647,1077);(31724,1079);(31801,1086);(31878,1091);(31955,1093);(32032,1100);(32109,1105);(32186,1110);(32257,1116);(32328,1123);(32399,1129);(32470,1135);(32541,1142);(32612,1149);(32683,1157);(32754,1165);(32825,1174);(32896,1182);(32967,1190);(33044,1197);(33115,1205);(33186,1214);(33257,1223);(33328,1231);(33399,1239);(33470,1248);(33541,1255);(33612,1264);(33683,1275);(33754,1284);(33825,1292);(33902,1301);(33973,1312);(34044,1325);(34115,1339);(34186,1353);(34257,1368);(34328,1386);(34399,1402);(34470,1418);(34541,1433);(34612,1449);(34683,1468);(34779,1486);(34850,1506);(34921,1528);(34992,1551);(35063,1576);(35134,1600);(35205,1622);(35276,1636);(774,2274);(845,2264);(916,2254);(987,2243);(1058,2234);(1129,2224);(1200,2213);(1271,2203);(1352,2194);(1423,2185);(1494,2177);(1565,2169);(1636,2162);(1707,2155);(1778,2148);(1849,2141);(1920,2134);(1991,2128);(2062,2122);(2133,2120);(2205,2116);(2276,456);(2347,454);(2418,454);(2489,457);(2560,458);(2631,458);(2702,458);(2773,458);(2844,458);(2915,458);(2986,458);(3063,458);(3134,458);(3205,458);(3276,459);(3347,459);(3418,460);(3489,460);(3560,461);(3631,462);(3702,463);(3773,464);(3844,464);(3919,465);(3990,466);(4061,467);(4132,468);(4203,469);(4274,470);(4345,472);(4416,479);(4487,489);(4558,2139);(4629,2150);(4700,2158);(4789,2165);(4860,2172);(4931,2178);(5002,2185);(5073,2193);(5144,2161);(5215,2077);(5286,2024);(5357,1964);(5428,1899);(5499,1843);(5570,1794);(5648,1738);(5718,1619);(5788,1608);(5858,1586);(5928,1554);(5998,1523);(6068,1497);(6138,1472);(6208,1451);(6278,1432);(6348,1412);(6418,1390);(6490,1369);(6561,1349);(6632,1329);(6703,1309);(6774,1291);(6845,1276);(6916,532);(6987,532);(7058,482);(7129,459);(7200,453);(7271,451);(7345,447);(7410,443);(7475,439);(7540,435);(7605,432);(7670,430);(7735,429);(7800,429);(7865,430);(7930,432);(7995,434);(8060,438);(8137,445);(8208,451);(8279,459);(8350,466);(8421,461);(8492,944);(8563,938);(8634,932);(8705,926);(8776,919);(8847,912);(8918,905);(8999,899);(9074,893);(9149,888);(9224,882);(9299,876);(9374,870);(9449,865);(9524,860);(9599,855);(9674,850);(9749,848);(9824,841);(9901,836);(9978,831);(10055,826);(10132,824);(10209,815);(10286,804);(10363,219);(10440,214);(10517,208);(10594,208);(10671,209);(10748,209);(10825,207);(10897,205);(10969,203);(11041,201);(11113,200);(11185,198);(11257,198);(11329,198);(11401,198);(11473,198);(11545,199);(11617,201);(11691,203);(11757,205);(11823,208);(11889,210);(11955,211);(12021,211);(12087,209);(12153,206);(12219,199);(12285,193);(12351,187);(12417,185);(12490,181);(12561,179);(12632,177);(12703,175);(12774,173);(12845,172);(12916,170);(12987,168);(13058,167);(13129,167);(13200,166);(13271,166);(13352,166);(13423,166);(13494,166);(13565,166);(13636,166);(13707,166);(13778,167);(13849,167);(13920,168);(13991,169);(14062,170);(14133,171);(14208,172);(14279,173);(14350,173);(14421,174);(14492,175);(14563,176);(14634,177);(14705,178);(14776,180);(14847,181);(14918,183);(14989,185);(15067,188);(15142,190);(15217,194);(15292,198);(15367,202);(15442,209);(15517,214);(15592,220);(15667,229);(15742,246);(15817,266);(15892,277);(15973,285);(16044,293);(16115,305);(16186,326);(16257,556);(16328,555);(16399,553);(16470,544);(16541,536);(16612,529);(16683,522);(16754,514);(16836,507);(16907,501);(16978,494);(17049,487);(17120,479);(17191,469);(18831,430);(18902,423);(18973,424);(19044,427);(19115,429);(19186,428);(19257,427);(19328,426);(19406,424);(19472,423);(19538,421);(19604,419);(19670,418);(19736,416);(19802,415);(19868,413);(19934,412);(20000,411);(20066,410);(20132,408);(20208,407);(20279,406);(20350,405);(20421,404);(20492,403);(20563,403);(20634,402);(20705,402);(20776,402);(20847,401);(20918,401);(20989,401);(21063,401);(21138,401);(21213,401);(21288,401);(21363,401);(21438,401);(21513,400);(21588,400);(21663,400);(21738,400);(21813,400);(21888,401);(21973,401);(22041,401);(22109,401);(22177,402);(22245,402);(22313,403);(22381,404);(22449,405);(22517,406);(22585,407);(22653,408);(22721,409);(22779,410);(22850,411);(22921,412);(22992,414);(23063,415);(23134,417);(23205,419);(23276,421);(23347,422);(23418,424);(23489,426);(23560,428);(23637,430);(23706,432);(23775,435);(23844,442);(23913,448);(23982,455);(24051,461);(24120,468);(24189,473);(24258,475);(24327,479);(24396,482);(24476,485);(24547,488);(24618,492);(24689,496);(24760,500);(24831,504);(24902,508);(24973,512);(25044,516);(25115,523);(25186,525);(25257,532);(25334,538);(25400,543);(25466,549);(25532,554);(25598,560);(25664,566);(25730,572);(25796,578);(25862,585);(25928,592);(25994,598);(26060,605);(26137,611);(26208,618);(26279,625);(26350,633);(26421,640);(26492,648);(26563,656);(26634,665);(26705,674);(26776,683);(26847,691);(26918,700);(26995,709);(27066,719);(27137,731);(27208,742);(27279,753);(27350,765);(27421,778);(27492,791);(27563,806);(27634,822);(27705,839);(27776,856);(27851,873);(27921,891);(27991,909);(28061,930);(28131,951);(28201,985);(28271,1028);(28341,1058);(28411,1079);(28481,1084);(28551,1083);(28621,1081);(28775,1077);(28846,1074);(28917,1071);(28988,1069);(29059,1066);(29130,1064);(29201,1062);(29272,1060);(29343,1058);(29414,1056);(29485,1054);(29556,1053);(29637,1052);(29706,1051);(29775,1050);(29844,1049);(29913,1048);(29982,1048);(30051,1048);(30120,1048);(30189,1048);(30258,1049);(30327,1049);(30396,1049);(30476,1049);(30547,1050);(30618,1050);(30689,1051);(30760,1050);(30831,1049);(30902,1048);(30973,1047);(31044,1047);(31115,1049);(31186,1051);(31257,1054);(31334,1057);(31405,1060);(31476,1064);(31547,1068);(31618,1071);(31689,1075);(31760,1079);(31831,1086);(31902,1091);(31973,1093);(32044,1101);(32115,1106);(32190,1111);(32261,1117);(32332,1123);(32403,1129);(32474,1136);(32545,1143);(32616,1150);(32687,1157);(32758,1165);(32829,1173);(32900,1180);(32971,1188);(33049,1196);(33120,1204);(33191,1213);(33262,1220);(33333,1228);(33404,1236);(33475,1244);(33546,1252);(33617,1261);(33688,1272);(33759,1281);(33830,1289);(33908,1297);(33979,1307);(34050,1320);(34121,1333);(34192,1348);(34263,1364);(34334,1379);(34405,1394);(34476,1411);(34547,1428);(34618,1444);(34689,1463);(34764,1483);(34834,1502);(34904,1521);(34974,1544);(35044,1567);(35114,1591);(35184,1621);(35254,1638);(755,2280);(826,2271);(897,2261);(968,2250);(1039,2239);(1110,2229);(1181,2219);(1252,2208);(1328,2199);(1399,2191);(1470,2183);(1541,2175);(1612,2167);(1683,2160);(1754,2152);(1825,2145);(1896,2138);(1967,2132);(2038,2126);(2109,2120)";
+      input = "(2423,178);(2494,178);(2565,179);(2636,181);(2707,184);(2778,186);(2849,189);(2920,192);(2991,195);(3062,199);(3133,203);(3204,210);(13634,481);(13710,488);(13786,489);(13862,493);(13938,504);(14014,168);(14090,158);(14166,157);(14242,157);(14318,552);(14394,561);(14470,573);(14540,585);(14612,595);(14684,606);(14756,618);(14828,630);(14900,643);(14972,656);(15044,669);(15116,684);(15188,700);(15260,717);(15332,735);(15400,754);(15471,773);(15542,389);(15613,375);(15684,370);(15755,369);(15826,368);(15897,366);(15968,359);(16039,357);(16110,354);(16181,351);(16262,349);(16333,348);(16404,348);(16475,349);(16546,351);(16617,353);(16688,357);(16759,365);(16830,371);(16901,379);(16972,1237);(17043,1237);(17115,1237);(17187,1237);(18826,1250);(18898,1251);(18970,295);(19042,294);(19114,288);(19186,1262);(19258,1263);(19330,1267);(19402,1270);(19474,1274);(19546,1277);(19618,1281);(19691,1290);(19762,1300);(19833,1307);(19904,1312);(19975,1313);(20046,1316);(20117,1317);(20188,1317);(20259,1319);(20330,1322);(20401,1329);(20472,1335);(20547,1341);(20618,1347);(20689,1354);(20760,1361);(20831,1368);(20902,1375);(20973,1383);(21044,1391);(21115,1402);(21186,1413);(21257,1423);(21328,1432);(21404,1440);(21474,1446);(21544,1452);(21614,1460);(21684,1469);(21754,1486);(21824,1499);(21894,1507);(21964,288);(22034,1534);(22104,1565);(22174,1585);(22255,1603);(22328,1620);(22401,1639);(22474,1649);(22547,1657);(22620,1666);(22693,1679);(22766,1805);(22839,1825);(22912,1827);(22985,1827);(23058,1825);(23133,1834);(23204,1860);(23275,1915);(23346,1929);(23417,1913);(23772,1740);(23843,1729);(23914,1714);(23994,1698);(24057,1682);(24120,1671);(24183,1660);(24246,1648);(24309,1636);(24372,1625);(24435,1615);(24498,1605);(24561,459);(24624,438);(24687,426);(24758,418);(24830,409);(24902,400);(24974,392);(25046,384);(25118,376);(25190,367);(25262,360);(25334,353);(25406,346);(25478,340);(25550,334);(25623,328);(25695,322);(25767,320);(25839,316);(25911,314);(25983,313);(26055,314);(26127,316);(26199,318);(26271,320);(26343,323);(26415,327);(26490,330);(26560,333);(26630,336);(26700,339);(26770,342);(26840,345);(26910,348);(26980,352);(27050,359);(27120,364);(27190,369);(27260,374);(27332,380);(27403,386);(27474,392);(27545,399);(27616,406);(27687,414);(27758,424);(27829,430);(27900,1477);(27971,1483);(28042,1489);(28113,1495);(28190,1500);(28263,1506);(28336,1512);(28409,1519);(28482,1525);(28555,1530);(28628,1536);(28701,1542);(28774,1549);(28847,1556);(28920,1563);(28993,1571);(29061,1579);(29132,1587);(29203,1594);(29274,1602);(29345,1611);(29416,1618);(29487,1626);(29558,1634);(29629,1642);(29700,1649);(29771,1657);(29842,1667);(29923,1681);(29993,1694);(30063,1705);(30133,1717);(30203,1729);(30273,1742);(30343,1755);(30413,1770);(30483,1785);(30553,1798);(30623,1813);(30693,1827);(30761,1841);(30832,1855);(30903,1868);(30974,1884);(31045,1886);(31116,1887);(31187,1856);(31258,1831);(31329,1811);(31400,1791);(31471,1769);(31542,1747);(31623,1725);(31701,1704);(31779,1684);(31857,1664);(31935,1647);(32013,1632);(32091,1617);(32169,1602);(32247,1587);(32325,1570);(32403,1555);(32481,1541);(32558,1526);(32629,1511);(32700,1499);(32771,1487);(32842,1475);(32913,1463);(32984,1454);(33055,1445);(33126,1436);(33197,1426);(33268,1417);(33339,1409);(33420,1401);(33491,1392);(33562,1384);(33633,1376);(33704,1368);(33775,1360);(33846,1353);(33917,1346);(33988,1339);(34059,1332);(34130,1325);(34201,677);(34274,665);(34344,663);(34414,662);(34484,662);(34554,663);(34624,666);(34694,673);(34764,680);(34834,687);(34904,695);(34974,704);(35044,719);(35118,744);(35189,774);(35260,793);(35331,579);(712,162);(789,201);(860,200);(931,198);(1002,195);(1073,191);(1144,188);(1215,185);(1286,183);(1357,181);(1428,179);(1499,178);(1570,177);(1650,177);(1724,177);(1798,176);(1872,176);(1946,176);(2020,176);(2094,176);(2168,176);(2242,176);(2316,176);(2390,177);(2464,178);(2543,179);(2615,180);(2687,182);(2759,185);(2831,188);(2903,191);(2975,194);(3047,197);(3119,200);(3191,204);(3263,207);(3335,216);(3414,229);(3485,590);(3556,584);(3627,577);(3698,569);(3769,559);(3840,550);(3911,542);(3982,534);(4053,527);(4124,519);(4195,511);(4272,504);(4343,497);(4414,490);(4485,484);(4556,478);(4627,473);(4698,467);(4769,462);(4840,457);(4911,452);(4982,447);(5053,442);(5132,440);(5203,436);(5274,432);(5345,428);(5416,424);(5487,420);(5558,416);(5629,412);(5700,409);(5771,405);(5842,402);(5913,399);(5990,396);(6055,393);(6120,391);(6185,388);(6250,386);(6315,383);(6380,381);(6445,379);(6510,376);(6575,374);(6640,372);(6705,370);(6779,368);(6850,367);(6921,365);(6992,363);(7063,361);(7134,359);(7205,357);(7276,356);(7347,354);(7418,353);(7489,352);(7560,351);(7636,350);(7712,349);(7788,348);(7864,347);(7940,347);(8016,346);(8092,345);(8168,345);(8244,344);(8320,343);(8396,343);(8472,343);(8547,343);(8619,343);(8691,342);(8763,342);(8835,342);(8907,342);(8979,342);(9051,342);(9123,342);(9195,342);(9267,342);(9339,343);(9414,343);(9485,343);(9556,343);(9627,343);(9698,344);(9769,345);(9840,346);(9911,347);(9982,347);(10053,348);(10124,349);(10195,350);(10272,351);(10348,352);(10424,353);(10500,353);(10576,352);(10652,350);(10728,350);(10804,356);(11253,365);(11395,380);(11466,381);(11537,377);(11608,372);(11679,373);(11750,380);(11821,386);(11892,391);(11963,396);(12047,397);(12118,401);(12189,404);(12260,407);(12331,410);(12402,413);(12473,416);(12544,418);(12615,420);(12686,423);(12757,425);(12828,428);(12904,432);(12975,436);(13046,443);(13117,445);(13188,452);(13259,457);(13330,462);(13401,464);(13472,471);(13543,476);(13614,481);(13685,486);(13761,488);(13831,492);(13901,499);(13971,508);(14041,157);(14111,156);(14181,155);(14251,161);(14321,556);(14391,565);(14461,577);(14531,588);(14611,599);(14684,611);(14757,624);(14830,636);(14903,648);(14976,662);(15049,675);(15122,691);(15195,708);(15268,726);(15341,744);(15414,761);(15493,776);(15564,380);(15635,372);(15706,371);(15777,370);(15848,368);(15919,362);(15990,357);(16061,355);(16132,352);(16203,350);(16274,348);(16350,348);(16420,348);(16490,350);(16560,352);(16630,355);(16700,362);(16770,368);(16840,376);(16910,385);(16980,1230);(17050,1232);(17120,1234);(17200,1233);(18815,1249);(18890,1250);(18968,279);(19040,289);(19112,301);(19184,1257);(19256,1259);(19328,1263);(19400,1267);(19472,1271);(19544,1278);(19616,1280);(19688,1287);(19760,1296);(19832,1305);(19903,1311);(19974,1313);(20045,1315);(20116,1316);(20187,1316);(20258,1318);(20329,1321);(20400,1328);(20471,1333);(20542,1338);(20613,1344);(20690,1350);(20756,1357);(20822,1364);(20888,1372);(20954,1380);(21020,1388);(21086,1397);(21152,1406);(21218,1416);(21284,1425);(21350,1434);(21416,1442);(21489,1449);(21560,1457);(21631,1468);(21702,1481);(21773,1494);(21844,1505);(21915,293);(21986,293);(22057,1550);(22128,1577);(22199,1596);(22270,1615);(22340,1632);(22416,1642);(22492,1648);(22568,1660);(22644,1672);(22720,1674);(22796,1819);(22872,1825);(22948,1826);(23024,1826);(23100,1813);(23176,1852)";
     }
     const char* p = input;
     float distance, angle;
@@ -181,7 +237,8 @@ RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool sho
       if (sscanf(p, "(%f,%f)", &angle, &distance) == 2) {
         LidarPoint lidarPoint(distance, 1, angle);
 
-        if (lidarPoint.distance() > LidarDistanceMin) {  // on ne prend pas les points < 13cm
+        if (lidarPoint.distance() > LidarDistanceMin && lidarPoint.distance() < 3000)  // on ne prend pas les points < 10cm et > 300cm
+        {
           points2[nb_points++] = lidarPoint;
           if (lidarPoint.distance() > distance_max) {
             distance_max = lidarPoint.distance();
@@ -209,21 +266,21 @@ RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool sho
   }
 
   // conversion en coordonnées cartésiennes :
-  std::vector<MutableVector2> points_cart;
+  std::vector<Vector2> points_cart;
   if (nb_points > 0) {
     for (size_t i = 0; i < nb_points; i++) {
       MutableLidarPoint lidarPoint = points2[i];
       // avec rotation de 90° vers la droite (pour que l'avant du lidar pointe vers le haut sur les graphes)
       float x = lidarPoint.distance() * cos(lidarPoint.angle() / 18000.0 * PI);
       float y = -lidarPoint.distance() * sin(lidarPoint.angle() / 18000.0 * PI);
-      points_cart.push_back(MutableVector2(Vector2(x, y)));
+      points_cart.push_back(Vector2(x, y));
     }
   }
 
   if (show_log) {
     full_log += "** CARTESIAN points: ";
-    for (int i = 0; i < nb_points; i++) {
-      MutableVector2 point = points_cart[i];
+    for (size_t i = 0; i < nb_points; i++) {
+      Vector2 point = points_cart[i];
       full_log += "(" + String(point.x()) + "," + String(point.y()) + ");";
     }
     if (full_log.length() > 0 && full_log[full_log.length() - 1] == ';') {
@@ -232,10 +289,8 @@ RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool sho
     full_log += "\r\n";
   }
 
-  int numRho = distance_max;
-
   start_millis = millis();
-  std::vector<HoughLine> lines = houghTransform(points_cart, nb_points, numRho);
+  std::vector<HoughLine> lines = houghTransform(points_cart, nb_points, distance_max);
   // unsigned long elapsed = millis() - start_millis;
   // SerialDebug.println("Temps hough transform : " + String(elapsed) + "ms");
   // start_millis = millis();
@@ -247,7 +302,8 @@ RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool sho
 
   std::vector<HoughLine> walls;
   if (lines.empty()) {
-    return RobotInfos(Vector2(-9999, -9999), orientation, points_walls);
+    SerialDebug.println("lines empty!");
+    return LidarInfos(Vector2(-9999, -9999), orientation, points_walls);
   }
 
   const HoughLine* parallelWall = nullptr;
@@ -259,82 +315,77 @@ RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool sho
     bool isParallel = false;
     bool isPerpendicular = false;
 
+    double line_a, line_b, line_c;
+    convertHoughLineToGeneralForm(line, line_a, line_b, line_c);
+
     if (!walls.empty()) {
+      double wall_a, wall_b, wall_c;
+      convertHoughLineToGeneralForm(walls[0], wall_a, wall_b, wall_c);
+      double angleDifferenceWithFirstWall = calculateAngleBetweenLines(line_a, line_b, line_c, wall_a, wall_b, wall_c);
+
       for (const auto& wall : walls) {
-        // on exclut les lignes qui ont un rho et theta similaires :
-        if (abs(line.rho - wall.rho) < rhoTolerance && abs(line.theta - wall.theta) < thetaMargin) {
-          isDifferentEnough = false;
-          break;
-        }
-
-        // cas particulier des lignes verticales :
-        if (line.theta > PI - thetaMargin && wall.theta < thetaMargin && ((line.rho < 0 && wall.rho > 0) || (line.rho > 0 && wall.rho < 0))) {
-          if (abs(line.rho) - abs(wall.rho) < rhoTolerance && abs(PI - line.theta - wall.theta) < thetaMargin) {
-            isDifferentEnough = false;
-            break;
-          }
-        } else if (line.theta < thetaMargin && wall.theta > PI - thetaMargin && ((line.rho < 0 && wall.rho > 0) || (line.rho > 0 && wall.rho < 0))) {
-          if (abs(line.rho) - abs(wall.rho) < rhoTolerance && abs(PI - line.theta - wall.theta) < thetaMargin) {
-            isDifferentEnough = false;
-            break;
-          }
-        }
-
-        double angleDifferenceWithFirstWall = abs(line.theta - walls[0].theta);
-
         // Mur perpendiculaire au 1er mur :
-        if (secondPerpendicularWall == nullptr &&
-            abs(angleDifferenceWithFirstWall - PI / 2.0) < thetaTolerancePerpendiculaire) {
-          double distance = 0.9 * fP.fieldWidth() * 10.0;
-
-          if (parallelWall != nullptr) {
-            double distanceBetweenParallelWalls = abs(walls[0].rho - parallelWall->rho);
-            if (distanceBetweenParallelWalls > 0.9 * fP.fieldWidth() * 10.0 && distanceBetweenParallelWalls < 1.1 * fP.fieldWidth() * 10.0) {
-              // les murs parallèles sont les grands murs, il faut qu'il y ait fieldLength entre les murs perpendiculaires
-              distance = 0.9 * fP.fieldLength() * 10.0;
-            }
-          }
-
+        if (secondPerpendicularWall == nullptr && abs(angleDifferenceWithFirstWall - PI / 2.0) < thetaTolerancePerpendiculaire) {
           if (firstPerpendicularWall != nullptr) {
             // vérifie si le second mur perpendiculaire est parallèle à firstPerpendicularWall et assez loin
 
-            // cas particulier des lignes verticales :
-            if (line.theta > PI - thetaMargin && firstPerpendicularWall->theta < thetaMargin && ((line.rho < 0 && firstPerpendicularWall->rho > 0) || (line.rho > 0 && firstPerpendicularWall->rho < 0))) {
-              if (abs(line.rho) - abs(firstPerpendicularWall->rho) < rhoTolerance && abs(PI - line.theta - firstPerpendicularWall->theta) < thetaMargin) {
-                // similaires
-              }
-            } else if (line.theta < thetaMargin && firstPerpendicularWall->theta > PI - thetaMargin && ((line.rho < 0 && firstPerpendicularWall->rho > 0) || (line.rho > 0 && wall.rho < 0))) {
-              if (abs(line.rho) - abs(firstPerpendicularWall->rho) < rhoTolerance && abs(PI - line.theta - firstPerpendicularWall->theta) < thetaMargin) {
-                // similaires
+            double distance = fP.fieldWidth();
+
+            if (parallelWall != nullptr) {
+              // double parallel_a, parallel_b, parallel_c;
+              // convertHoughLineToGeneralForm(*parallelWall, parallel_a, parallel_b, parallel_c);
+              double distanceBetweenParallelWalls = calculateDistanceBetweenLines(walls[0], *parallelWall);
+
+              if (distanceBetweenParallelWalls > 0.9 * fP.fieldWidth() * 10.0 && distanceBetweenParallelWalls < 1.1 * fP.fieldWidth() * 10.0) {
+                // les murs parallèles sont les grands murs, il faut qu'il y ait fieldLength entre les murs perpendiculaires
+                distance = fP.fieldLength();
               }
             }
-            // autres cas :
-            else if (abs(firstPerpendicularWall->rho - line.rho) > distance && ((firstPerpendicularWall->rho > 0 && line.rho < 0) || (firstPerpendicularWall->rho < 0 && line.rho > 0))) {
+
+            double perpendicular_a, perpendicular_b, perpendicular_c;
+            convertHoughLineToGeneralForm(*firstPerpendicularWall, perpendicular_a, perpendicular_b, perpendicular_c);
+            double distanceLineToPerpendicular = calculateDistanceBetweenLines(line, *firstPerpendicularWall);
+
+            if (distanceLineToPerpendicular > 0.9 * distance * 10 && line_c * perpendicular_c < 0) {
+              // 2è mur perpendiculaire
               isPerpendicular = true;
               break;
             }
           } else {
+            // 1er mur perpendiculaire
             isPerpendicular = true;
             break;
           }
         }
 
         // Mur parallèle au 1er mur :
-        if (parallelWall == nullptr && angleDifferenceWithFirstWall < thetaToleranceParallel && abs(walls[0].rho - line.rho) > 0.9 * fP.fieldWidth() * 10.0 && ((walls[0].rho > 0 && line.rho < 0) || (walls[0].rho < 0 && line.rho > 0))) {
-          if (firstPerpendicularWall != nullptr && secondPerpendicularWall != nullptr) {
-            double distanceBetweenPerpendicularWalls = abs(firstPerpendicularWall->rho - secondPerpendicularWall->rho);
+        double distanceBetweenLineAndFirstWall = calculateDistanceBetweenLines(walls[0], line);
 
-            if (distanceBetweenPerpendicularWalls > 0.9 * fP.fieldWidth() * 10.0 && distanceBetweenPerpendicularWalls < 1.1 * fP.fieldWidth() * 10.0) {
+        if (parallelWall == nullptr && angleDifferenceWithFirstWall < thetaToleranceParallel && distanceBetweenLineAndFirstWall > 0.9 * fP.fieldWidth() * 10.0) {
+          if (firstPerpendicularWall != nullptr && secondPerpendicularWall != nullptr) {
+            double perpendicular1_a, perpendicular1_b, perpendicular1_c;
+            convertHoughLineToGeneralForm(*firstPerpendicularWall, perpendicular1_a, perpendicular1_b, perpendicular1_c);
+            double perpendicular2_a, perpendicular2_b, perpendicular2_c;
+            convertHoughLineToGeneralForm(*secondPerpendicularWall, perpendicular2_a, perpendicular2_b, perpendicular2_c);
+
+            double distanceBetweenPerpendicularWalls = calculateDistanceBetweenLines(*firstPerpendicularWall, *secondPerpendicularWall);
+
+            if (distanceBetweenPerpendicularWalls > 0.9 * fP.fieldWidth() * 10.0 && distanceBetweenPerpendicularWalls < 1.1 * fP.fieldWidth() * 10.0 && perpendicular1_c * perpendicular2_c < 0) {
               // les murs perpendiculaires sont les grands murs, il faut que le mur parallèle soit à une distance de fieldLength
-              if (abs(walls[0].rho - line.rho) > 0.9 * fP.fieldLength() * 10.0) {
+              if (distanceBetweenLineAndFirstWall > 0.9 * fP.fieldLength() * 10.0 && distanceBetweenLineAndFirstWall < 1.1 * fP.fieldLength() * 10.0 && wall_c * line_c < 0) {
+                // Les murs parallèles sont les petits murs
                 isParallel = true;
                 break;
               }
-            } else {
-              isParallel = true;
-              break;
+            } else {  // Les murs perpendiculaires sont forcément à une distance fieldLength
+              if (distanceBetweenLineAndFirstWall > 0.9 * fP.fieldWidth() * 10.0 && distanceBetweenLineAndFirstWall < 1.1 * fP.fieldWidth() * 10.0 && wall_c * line_c < 0) {
+                // Les murs parallèles sont les grands murs
+                isParallel = true;
+                break;
+              }
             }
           } else {
+            // Maximum 1 mur perpendiculaire détecté
             isParallel = true;
             break;
           }
@@ -344,31 +395,29 @@ RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool sho
 
     if (walls.empty() || (isDifferentEnough && (isParallel || isPerpendicular))) {
       // ** Check de la longueur du segment détecté
-      double a, b;
-      convertHoughLineToSlopeIntercept(line, a, b);
-      std::vector<MutableVector2> closePoints;  // on récupère tous les points "sur" la droite
+      std::vector<Vector2> closePoints;  // on récupère tous les points "sur" la droite
       for (const auto& point : points_cart) {
-        double distance = calculateDistanceToLine(point, -a, 1, -b);
+        double distance = calculateDistanceToLine(point, line_a, line_b, line_c);
         if (distance <= PointToLineDistanceMax) {
           closePoints.push_back(point);
         }
       }
 
       // On crée des groupes des points rapprochés sur la droite :
-      std::vector<std::vector<MutableVector2>> groups;
-      std::vector<MutableVector2> currentGroup;
+      std::vector<std::vector<Vector2>> groups;
+      std::vector<Vector2> currentGroup;
       groups.push_back(currentGroup);
 
       for (const auto& point : closePoints) {
         if (currentGroup.empty()) {
           currentGroup.push_back(point);
         } else {
-          if (point.toVector2().distance(currentGroup.back().toVector2()) <= PointToPointDistanceMax) {
+          if (point.distance(currentGroup.back()) <= PointToPointDistanceMax) {
             currentGroup.push_back(point);
           } else {
-            std::vector<MutableVector2> groupCopy = currentGroup;
+            std::vector<Vector2> groupCopy = currentGroup;
             groups.push_back(groupCopy);
-            currentGroup = std::vector<MutableVector2>();
+            currentGroup = std::vector<Vector2>();
             currentGroup.push_back(point);
           }
         }
@@ -383,7 +432,7 @@ RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool sho
       // quel est le groupe qui a la plus grande longueur :
       for (const auto& group : groups) {
         if (group.size() >= 2) {
-          double groupDistance = group.front().toVector2().distance(group.back().toVector2());
+          double groupDistance = group.front().distance(group.back());
           if (groupDistance > maxDistance) {
             maxDistance = groupDistance;
           }
@@ -393,7 +442,8 @@ RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool sho
       if (maxDistance > LineLengthMin) {
         // SerialDebug.println("wall ajouté -> rho: " + String(line.rho) + ", theta: " + String(line.theta) + ", accumulators: "
         //       + String(line.nb_accumulators) + ", close points: " + String(closePoints.size()) + ", nb groups: "
-        //       + String(groups.size()) + ", maxDistance=" + String(maxDistance));
+        //       + String(groups.size()) + ", maxDistance=" + String(maxDistance) + ", isParallel=" + String(isParallel)
+        //       + ", isPerpendicular=" + String(isPerpendicular));
 
         line.length = maxDistance;
         walls.push_back(line);
@@ -465,28 +515,34 @@ RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool sho
   }
 
   // Afficher les murs détectés
-  // if(show_log) {
-  //   full_log += "** Walls rho: ";
-  //   for (size_t i = 0; i < rhos.size(); i++) {
-  //     full_log += String(rhos[i]) + ","; // * 10
-  //   }
-  //   if (full_log.length() > 0 && full_log[full_log.length() - 1] == ',') { full_log = full_log.substring(0, full_log.length() - 1); }
-  //   full_log += "\r\n";
+  if (show_log) {
+    full_log += "** Walls rho: ";
+    for (size_t i = 0; i < rhos.size(); i++) {
+      full_log += String(rhos[i]) + ",";  // * 10
+    }
+    if (full_log.length() > 0 && full_log[full_log.length() - 1] == ',') {
+      full_log = full_log.substring(0, full_log.length() - 1);
+    }
+    full_log += "\r\n";
 
-  //   full_log += "** Walls theta: ";
-  //   for (size_t i = 0; i < thetas.size(); i++) {
-  //     full_log += String(thetas[i]) + ",";
-  //   }
-  //   if (full_log.length() > 0 && full_log[full_log.length() - 1] == ',') { full_log = full_log.substring(0, full_log.length() - 1); }
-  //   full_log += "\r\n";
+    full_log += "** Walls theta: ";
+    for (size_t i = 0; i < thetas.size(); i++) {
+      full_log += String(thetas[i]) + ",";
+    }
+    if (full_log.length() > 0 && full_log[full_log.length() - 1] == ',') {
+      full_log = full_log.substring(0, full_log.length() - 1);
+    }
+    full_log += "\r\n";
 
-  //   full_log += "** Walls accumulators: ";
-  //   for (size_t i = 0; i < accumulators.size(); i++) {
-  //     full_log += String(accumulators[i]) + ",";
-  //   }
-  //   if (full_log.length() > 0 && full_log[full_log.length() - 1] == ',') { full_log = full_log.substring(0, full_log.length() - 1); }
-  //   full_log += "\r\n";
-  // }
+    full_log += "** Walls accumulators: ";
+    for (size_t i = 0; i < accumulators.size(); i++) {
+      full_log += String(accumulators[i]) + ",";
+    }
+    if (full_log.length() > 0 && full_log[full_log.length() - 1] == ',') {
+      full_log = full_log.substring(0, full_log.length() - 1);
+    }
+    full_log += "\r\n";
+  }
 
   // Trouver les coins
   std::vector<Point> corners;
@@ -510,7 +566,7 @@ RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool sho
     HoughLine wall = walls[i];
     float x = wall.rho * cos(wall.theta);
     float y = wall.rho * sin(wall.theta);
-    points_walls.push_back(MutableVector2(Vector2(x, y)));
+    points_walls.push_back(Vector2(x, y));
   }
 
   if (show_log) {
@@ -534,9 +590,9 @@ RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool sho
   }
 
   if (corners.size() != 4) {  // on n'a pas les 4 coins, on arrête là
-    RobotInfos infos = RobotInfos(Vector2(-9999, -9999), orientation, points_walls);
+    LidarInfos infos = LidarInfos(Vector2(-9999, -9999), orientation, points_walls);
     if (show_log) {
-      full_log += "** Infos: nearest wall: " + String(infos.getNearestWall().toVector2().distance({0, 0}) / 10.0) + " cm\r\n";
+      full_log += "** Infos: nearest wall: " + String(infos.getNearestWall().distance({0, 0}) / 10.0) + " cm\r\n";
       full_log += "******** END ********";
       SerialDebug.println(full_log);
     }
@@ -606,10 +662,10 @@ RobotInfos getFieldInfos(FieldProperties fP, bool readFromLidar = true, bool sho
       -centroid.y * sin(orientation) - centroid.x * cos(orientation),
       -centroid.y * cos(orientation) + centroid.x * sin(orientation)};
 
-  RobotInfos infos_ = RobotInfos(Vector2(coordinates.x, coordinates.y), orientation, points_walls);
+  LidarInfos infos_ = LidarInfos(Vector2(coordinates.x, coordinates.y), orientation, points_walls);
 
   if (show_log) {
-    full_log += "** Infos: x=" + String(infos_.getCoordinates().x() / 10.0) + " cm, y=" + String(infos_.getCoordinates().y() / 10.0) + " cm, orientation: " + String(infos_.getOrientation()) + " deg, nearest wall: " + String(infos_.getNearestWall().toVector2().distance({0, 0}) / 10.0) + " cm\r\n";
+    full_log += "** Infos: x=" + String(infos_.getCoordinates().x() / 10.0) + " cm, y=" + String(infos_.getCoordinates().y() / 10.0) + " cm, orientation: " + String(infos_.getOrientation()) + " deg, nearest wall: " + String(infos_.getNearestWall().distance({0, 0}) / 10.0) + " cm\r\n";
     full_log += "******** END ********";
     SerialDebug.println(full_log);
   }
@@ -639,7 +695,7 @@ double successPercentageTotal = 0;
 double successPercentageValues = 0;
 
 void checkCoordinates(FieldProperties fP, String text, double x, double y, const char* input) {
-  RobotInfos infos = getFieldInfos(fP, false, false, input);
+  LidarInfos infos = getLidarInfos(fP, false, false, input);
   double tolerance = 8;  // cm
   Vector2 robotCoordinates = infos.getCoordinates();
 
@@ -749,4 +805,92 @@ void testsLidar(FieldProperties fP) {
   if (successPercentageValues > 0) {
     SerialDebug.println("Moyenne: " + String(successPercentageTotal / successPercentageValues) + " %");
   }
+}
+
+void assertAngleDifference(String text, double computed, double expected) {
+  if (abs(computed - expected) < 0.01) {
+    SerialDebug.println("SUCCESS - " + text);
+  } else {
+    SerialDebug.println("FAILURE - " + text + " -> Expecting: " + String(expected) + " ; got: " + String(computed));
+  }
+}
+
+void testsCalculs() {
+  HoughLine line1 = {1, 0.5, 0, 0};
+  double line1_a, line1_b, line1_c;
+  convertHoughLineToGeneralForm(line1, line1_a, line1_b, line1_c);
+
+  HoughLine line2 = {1, 1, 0, 0};
+  double line2_a, line2_b, line2_c;
+  convertHoughLineToGeneralForm(line2, line2_a, line2_b, line2_c);
+
+  HoughLine line3 = {1, 2, 0, 0};
+  double line3_a, line3_b, line3_c;
+  convertHoughLineToGeneralForm(line3, line3_a, line3_b, line3_c);
+
+  HoughLine line4 = {1, 3, 0, 0};
+  double line4_a, line4_b, line4_c;
+  convertHoughLineToGeneralForm(line4, line4_a, line4_b, line4_c);
+
+  HoughLine line5 = {-1, 0.5, 0, 0};
+  double line5_a, line5_b, line5_c;
+  convertHoughLineToGeneralForm(line5, line5_a, line5_b, line5_c);
+
+  HoughLine line6 = {-1, 1, 0, 0};
+  double line6_a, line6_b, line6_c;
+  convertHoughLineToGeneralForm(line6, line6_a, line6_b, line6_c);
+
+  HoughLine line7 = {-1, 2, 0, 0};
+  double line7_a, line7_b, line7_c;
+  convertHoughLineToGeneralForm(line7, line7_a, line7_b, line7_c);
+
+  HoughLine line8 = {-1, 3, 0, 0};
+  double line8_a, line8_b, line8_c;
+  convertHoughLineToGeneralForm(line8, line8_a, line8_b, line8_c);
+
+  SerialDebug.println("**** TESTS angles ****");
+  assertAngleDifference("line1/line2 ax+by+c", calculateAngleBetweenLines(line1_a, line1_b, line1_c, line2_a, line2_b, line2_c), 0.5);
+  assertAngleDifference("line1/line3 ax+by+c", calculateAngleBetweenLines(line1_a, line1_b, line1_c, line3_a, line3_b, line3_c), 1.5);
+  assertAngleDifference("line4/line2 ax+by+c", calculateAngleBetweenLines(line4_a, line4_b, line4_c, line2_a, line2_b, line2_c), PI - 2);
+  assertAngleDifference("line5/line6 ax+by+c", calculateAngleBetweenLines(line5_a, line5_b, line5_c, line6_a, line6_b, line6_c), 0.5);
+  assertAngleDifference("line7/line6 ax+by+c", calculateAngleBetweenLines(line7_a, line7_b, line7_c, line6_a, line6_b, line6_c), 1);
+  assertAngleDifference("line7/line8 ax+by+c", calculateAngleBetweenLines(line7_a, line7_b, line7_c, line8_a, line8_b, line8_c), 1);
+
+  assertAngleDifference("line1/line8 ax+by+c", calculateAngleBetweenLines(line1_a, line1_b, line1_c, line8_a, line8_b, line8_c), PI - 3 + 0.5);
+  assertAngleDifference("line2/line7 ax+by+c", calculateAngleBetweenLines(line2_a, line2_b, line2_c, line7_a, line7_b, line7_c), 1);
+  assertAngleDifference("line4/line5 ax+by+c", calculateAngleBetweenLines(line4_a, line4_b, line4_c, line5_a, line5_b, line5_c), PI - 3 + 0.5);
+  assertAngleDifference("line7/line4 ax+by+c", calculateAngleBetweenLines(line7_a, line7_b, line7_c, line4_a, line4_b, line4_c), 1);
+  assertAngleDifference("line2/line5 ax+by+c", calculateAngleBetweenLines(line2_a, line2_b, line2_c, line5_a, line5_b, line5_c), 0.5);
+  assertAngleDifference("line6/line2 ax+by+c", calculateAngleBetweenLines(line6_a, line6_b, line6_c, line2_a, line2_b, line2_c), 0);
+  assertAngleDifference("line3/line7 ax+by+c", calculateAngleBetweenLines(line3_a, line3_b, line3_c, line7_a, line7_b, line7_c), 0);
+  assertAngleDifference("line7/line3 ax+by+c", calculateAngleBetweenLines(line7_a, line7_b, line7_c, line3_a, line3_b, line3_c), 0);
+  assertAngleDifference("line4/line8 ax+by+c", calculateAngleBetweenLines(line4_a, line4_b, line4_c, line8_a, line8_b, line8_c), 0);
+  assertAngleDifference("line8/line4 ax+by+c", calculateAngleBetweenLines(line8_a, line8_b, line8_c, line4_a, line4_b, line4_c), 0);
+
+  HoughLine line9 = {1, PI - 0.1, 0, 0};
+  double line9_a, line9_b, line9_c;
+  convertHoughLineToGeneralForm(line9, line9_a, line9_b, line9_c);
+
+  HoughLine line10 = {-1, 0.1, 0, 0};
+  double line10_a, line10_b, line10_c;
+  convertHoughLineToGeneralForm(line10, line10_a, line10_b, line10_c);
+
+  assertAngleDifference("line9/line10 ax+by+c", calculateAngleBetweenLines(line9_a, line9_b, line9_c, line10_a, line10_b, line10_c), 0.2);
+  assertAngleDifference("line4/line10 ax+by+c", calculateAngleBetweenLines(line4_a, line4_b, line4_c, line10_a, line10_b, line10_c), PI - 3 + 0.1);
+  assertAngleDifference("line9/line6 ax+by+c", calculateAngleBetweenLines(line9_a, line9_b, line9_c, line6_a, line6_b, line6_c), 1.1);
+  assertAngleDifference("line9/line8 ax+by+c", calculateAngleBetweenLines(line9_a, line9_b, line9_c, line8_a, line8_b, line8_c), PI - 0.1 - 3);
+
+  HoughLine line11 = {1, 0.1, 0, 0};
+  double line11_a, line11_b, line11_c;
+  convertHoughLineToGeneralForm(line11, line11_a, line11_b, line11_c);
+
+  HoughLine line12 = {-1, PI - 0.1, 0, 0};
+  double line12_a, line12_b, line12_c;
+  convertHoughLineToGeneralForm(line12, line12_a, line12_b, line12_c);
+
+  assertAngleDifference("line11/line12 ax+by+c", calculateAngleBetweenLines(line11_a, line11_b, line11_c, line12_a, line12_b, line12_c), 0.2);
+  assertAngleDifference("line1/line12 ax+by+c", calculateAngleBetweenLines(line1_a, line1_b, line1_c, line12_a, line12_b, line12_c), 0.6);
+  assertAngleDifference("line11/line8 ax+by+c", calculateAngleBetweenLines(line11_a, line11_b, line11_c, line8_a, line8_b, line8_c), PI - 3 + 0.1);
+  assertAngleDifference("line12/line3 ax+by+c", calculateAngleBetweenLines(line12_a, line12_b, line12_c, line3_a, line3_b, line3_c), PI - 0.1 - 2);
+  assertAngleDifference("line9/line12 ax+by+c", calculateAngleBetweenLines(line9_a, line9_b, line9_c, line12_a, line12_b, line12_c), 0);
 }

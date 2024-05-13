@@ -50,7 +50,7 @@ bool leavingField(FieldProperties fP, RobotState cS) {
 }
 
 bool ballIsDetected(FieldProperties fP, RobotState cS) {
-  //return cS.ballPos() != fP.noneVect();
+  // return cS.ballPos() != fP.noneVect();
   return true;
 }
 

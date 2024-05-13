@@ -102,12 +102,12 @@ void SerialClass::debugPrintln(const String& str) {
 }
 
 bool SerialClass::find(String str) {
-  //unsupported yet
+  // unsupported yet
   throw std::exception();
 }
 
-byte SerialClass::readBytes(byte *buffer, int length) {
-  //unsupported yet
+byte SerialClass::readBytes(byte* buffer, int length) {
+  // unsupported yet
   throw std::exception();
 }
 

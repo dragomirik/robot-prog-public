@@ -18,7 +18,7 @@ FieldProperties::FieldProperties(
       _robotRadius(robotRadius),
       _ballRadius(ballRadius) {}
 
-ReadingData::ReadingData(){}
+ReadingData::ReadingData() {}
 
 void ReadingData::nowWriteInYState() {
   _writingInXState = false;
