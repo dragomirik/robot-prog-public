@@ -99,7 +99,8 @@ RobotState getCamInfos() {
   return RobotState(Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0));
 }
 
-void loop() {
+void loop() {}
+void aloop() {
   unsigned long start_millis = millis();
   SerialDebug.println("***");
 
