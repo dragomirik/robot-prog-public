@@ -110,9 +110,10 @@ FutureAction refrainFromLeavingStrategy(FieldProperties fP, RobotState cS) {
     yDirection = -10;
   }
 
-  if ((cS.enemyGoalPos().norm() < goalMinDistance && cS.enemyGoalPos().realNorm() > fP.robotRadius()) ||
-      (cS.myGoalPos().norm() < goalMinDistance && cS.myGoalPos().realNorm() > fP.robotRadius())) {
+  if (cS.enemyGoalPos().norm() < goalMinDistance) {
     yDirection = -10;
+  } else if (cS.myGoalPos().norm() < goalMinDistance) {
+    yDirection = 10;
   }
 
   return FutureAction(
