@@ -14,8 +14,9 @@ void setupLog(int logLevel) {
     _logFile = SD.open("log1.log", FILE_WRITE);
     _logLevel = logLevel;
     if (!_logFile) {
-      SerialDebug.println("logger.setupLog : cannot open a file, maybe there is no SD card, logger desactivated");
+      SerialDebug.println("logger.setupLog : cannot open a file, logger desactivated");
     }
+    log_a(InfoLevel, "logger.setupLog", "------- NEW SESSION -------");
   }
   
 }
@@ -26,4 +27,3 @@ void log_a(unsigned int level, String fromFun, String message) {
     _logFile.flush();
   }
 }
-
