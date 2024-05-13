@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <SD.h>
+
 #include "utilities.h"
 
 const unsigned int NoteLevel = 10;
@@ -11,8 +12,12 @@ const unsigned int InfoLevel = 30;
 const unsigned int ErrorLevel = 40;
 const unsigned int CriticalLevel = 50;
 
+String logGetName(unsigned int level);
+
 void setupLog(int logLevel);
 
 void log_a(unsigned int level, String fromFun, String message);
+
+String getTimestamp();
 
 #endif
