@@ -5,9 +5,6 @@
 #include <SD.h>
 #include "utilities.h"
 
-File _logFile;
-unsigned int _logLevel;
-
 const unsigned int NoteLevel = 10;
 const unsigned int DebugLevel = 20;
 const unsigned int InfoLevel = 30;

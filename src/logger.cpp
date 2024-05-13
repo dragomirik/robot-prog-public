@@ -1,5 +1,8 @@
 #include "logger.h"
 
+File _logFile;
+unsigned int _logLevel;
+
 void setupLog(int logLevel) {
   if (_logFile) {
     log_a(ErrorLevel, "logger.setupLog", "already setup");
