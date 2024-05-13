@@ -49,9 +49,6 @@ void setup() {
   SerialLidar.setTimeout(10);
 
   setupLog(NoteLevel);
-  log_a(DebugLevel, "ok", "f1");
-  log_a(DebugLevel, "ok", "f2");
-  log_a(DebugLevel, "ok", "f3");
 }
 
 std::string extractLastCompleteSequence(const char* buffer) {
@@ -99,8 +96,7 @@ RobotState getCamInfos() {
   return RobotState(Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0));
 }
 
-void loop() {}
-void aloop() {
+void loop() {
   unsigned long start_millis = millis();
   SerialDebug.println("***");
 
