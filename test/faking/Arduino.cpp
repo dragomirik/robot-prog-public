@@ -35,7 +35,6 @@ String::String(uint16_t s) : std::string(_removeZeros(std::to_string(s))) {}
 String::String(int s) : std::string(_removeZeros(std::to_string(s))) {}
 String::String(unsigned int s) : std::string(_removeZeros(std::to_string(s))) {}
 String::String(unsigned long s) : std::string(_removeZeros(std::to_string(s))) {}
-String::String(size_t s) : std::string(_removeZeros(std::to_string(s))) {}
 
 float String::toFloat() {
   return std::stof(*this);

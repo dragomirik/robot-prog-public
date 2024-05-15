@@ -40,7 +40,6 @@ class String : public std::string {
   String(int s);
   String(unsigned int s);
   String(long unsigned int);
-  String(size_t s);
 
   float toFloat();
 };
