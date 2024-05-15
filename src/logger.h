@@ -2,7 +2,10 @@
 #define LOOGER_H
 
 #include <Arduino.h>
+
+#ifndef UNIT_TEST_ACTIVATED
 #include <SD.h>
+#endif
 
 #include "utilities.h"
 

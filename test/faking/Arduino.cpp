@@ -33,6 +33,8 @@ String::String(const std::string& s) : std::string(s) {}
 String::String(double s) : std::string(_removeZeros(std::to_string(s))) {}
 String::String(uint16_t s) : std::string(_removeZeros(std::to_string(s))) {}
 String::String(int s) : std::string(_removeZeros(std::to_string(s))) {}
+String::String(unsigned int s) : std::string(_removeZeros(std::to_string(s))) {}
+String::String(unsigned long s) : std::string(_removeZeros(std::to_string(s))) {}
 String::String(size_t s) : std::string(_removeZeros(std::to_string(s))) {}
 
 float String::toFloat() {
@@ -199,3 +201,9 @@ void analogWrite(int pin, int value) { fakeArduinoPins.analogWrite(pin, value); 
 void digitalWrite(int pin, int value) { fakeArduinoPins.digitalWrite(pin, value); }
 int analogRead(int pin, int value) { return fakeArduinoPins.analogRead(pin); }
 int digitalRead(int pin) { return fakeArduinoPins.digitalRead(pin); }
+
+unsigned long millis() {
+  std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
+  std::chrono::milliseconds elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - _start_time);
+  return elapsed.count();
+}

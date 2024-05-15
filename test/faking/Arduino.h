@@ -1,12 +1,15 @@
 #ifndef FAKE_ARDUINO_H
 #define FAKE_ARDUINO_H
 
+#define UNIT_TEST_ACTIVATED
+
 #include <cctype>
 #include <cmath>
 #include <cstdint>
 #include <queue>
 #include <stdexcept>
 #include <string>
+#include <chrono>
 
 #define PI 3.1415926535897932384626433832795
 #define DEG_TO_RAD 0.017453292519943295769236907684886
@@ -21,6 +24,9 @@
 #define max std::max
 typedef uint8_t byte;
 
+const std::chrono::time_point<std::chrono::steady_clock> _start_time = std::chrono::steady_clock::now();
+unsigned long millis();
+
 double sq(double x);
 
 std::string _removeZeros(std::string str);
@@ -32,6 +38,8 @@ class String : public std::string {
   String(double s);
   String(uint16_t s);
   String(int s);
+  String(unsigned int s);
+  String(long unsigned int);
   String(size_t s);
 
   float toFloat();

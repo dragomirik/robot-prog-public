@@ -1,7 +1,38 @@
 #include "logger.h"
 
+#ifndef UNIT_TEST_ACTIVATED
 File _logFile;
 unsigned int _logLevel;
+
+void setupLog(int logLevel) {
+  if (!SD.begin(BUILTIN_SDCARD)) {
+    Serial.println("logger.setupLog : Erreur lors de l'initialisation de la carte microSD !, maybe there is no SD card, logger desactivated");
+    return;
+  }
+  if (_logFile) {
+    log_a(ErrorLevel, "logger.setupLog", "already setup");
+  } else {
+    _logFile = SD.open("log1.log", FILE_WRITE);
+    _logLevel = logLevel;
+    if (!_logFile) {
+      SerialDebug.println("logger.setupLog : cannot open a file, logger desactivated");
+    }
+    log_a(InfoLevel, "logger.setupLog", "------- NEW SESSION -------");
+  }
+}
+
+void log_a(unsigned int level, String fromFun, String message) {
+  if (_logFile && level >= _logLevel) {
+    _logFile.println(getTimestamp() + " : " + logGetName(level) + " from " + fromFun + " : " + message);
+    _logFile.flush();
+  }
+}
+
+#else
+void setupLog(int logLevel) {}
+void log_a(unsigned int level, String fromFun, String message) {}
+
+#endif
 
 String logGetName(unsigned int level) {
   switch (level) {
@@ -37,28 +68,3 @@ String getTimestamp() {
 
   return timestamp;
 }
-
-void setupLog(int logLevel) {
-  if (!SD.begin(BUILTIN_SDCARD)) {
-    Serial.println("logger.setupLog : Erreur lors de l'initialisation de la carte microSD !, maybe there is no SD card, logger desactivated");
-    return;
-  }
-  if (_logFile) {
-    log_a(ErrorLevel, "logger.setupLog", "already setup");
-  } else {
-    _logFile = SD.open("log1.log", FILE_WRITE);
-    _logLevel = logLevel;
-    if (!_logFile) {
-      SerialDebug.println("logger.setupLog : cannot open a file, logger desactivated");
-    }
-    log_a(InfoLevel, "logger.setupLog", "------- NEW SESSION -------");
-  }
-}
-
-void log_a(unsigned int level, String fromFun, String message) {
-  if (_logFile && level >= _logLevel) {
-    _logFile.println(getTimestamp() + " : " + logGetName(level) + " from " + fromFun + " : " + message);
-    _logFile.flush();
-  }
-}
-
