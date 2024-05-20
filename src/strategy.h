@@ -8,19 +8,24 @@
 
 class FutureAction {
  private:
-  const bool _changeMove;
-  const Vector2 _target;
+  const Optional<MutableVector2> _target;
   const bool _activeKicker;
+  const int _celerity;
+  const Radians _orientation;
 
  public:
   FutureAction(
       Vector2 target,
+      int celerity,
+      Radians orientation,
       bool activeKicker);
   FutureAction(
+      int celerity,
+      Radians orientation,
       bool activeKicker);
 
-  inline bool changeMove() const { return _changeMove; }
-  inline Vector2 target() const { return _target; }
+  inline bool changeMove() const { return _target.hasValue(); }
+  inline Vector2 target() const { return _target.value().toVector2(); }
   inline bool activeKicker() const { return _activeKicker; }
 };
 

@@ -2,20 +2,28 @@
 
 FutureAction::FutureAction(
     Vector2 target,
-    bool activeKicker) : _changeMove(true),
-                         _target(target),
-                         _activeKicker(activeKicker){};
+    int celerity,
+    Radians orientation,
+    bool activeKicker)
+    : _target(Optional<MutableVector2>(target)),
+      _celerity(celerity),
+      _orientation(orientation),
+      _activeKicker(activeKicker) {}
+
 FutureAction::FutureAction(
-    bool activeKicker) : _changeMove(false),
-                         _target(Vector2(0, 0)),
-                         _activeKicker(activeKicker){};
+    int celerity,
+    Radians orientation,
+    bool activeKicker)
+    : _target(Optional<MutableVector2>()),
+      _celerity(celerity),
+      _orientation(orientation),
+      _activeKicker(activeKicker) {}
 
 ////////
 const int goalMinDistance = 35;
-const FutureAction stopRobot = FutureAction(Vector2(0,0), false);
+const FutureAction stopRobot = FutureAction(Vector2(0, 0), false);
 FutureAction chooseStrategy(FieldProperties fP, RobotState cS) {
   if (robotIsLost(fP, cS)) {
-
     if (!ballIsDetected(fP, cS)) {
       return stopRobot;
 
@@ -37,7 +45,6 @@ FutureAction chooseStrategy(FieldProperties fP, RobotState cS) {
     }
 
   } else {
-
     if (leavingField(fP, cS)) {
       return refrainFromLeavingStrategy(fP, cS);
 
@@ -62,7 +69,7 @@ FutureAction chooseStrategy(FieldProperties fP, RobotState cS) {
 }
 
 bool robotIsLost(FieldProperties fP, RobotState cS) {
-  return cS.myPos() == Vector2(-9999,-9999);
+  return cS.myPos() == Vector2(-9999, -9999);
 }
 
 bool leavingField(FieldProperties fP, RobotState cS) {
@@ -147,7 +154,6 @@ FutureAction goToBallStrategy(FieldProperties fP, RobotState cS) {
 }
 
 FutureAction goToBallAvoidingBallStrategyWithCam(FieldProperties fP, RobotState cS) {
-
   if (targetJustBehindOfRobot(fP, cS, cS.ballPos())) {
     return FutureAction(
         Vector2(10, -10),
@@ -155,13 +161,12 @@ FutureAction goToBallAvoidingBallStrategyWithCam(FieldProperties fP, RobotState 
 
   } else {
     return FutureAction(
-          Vector2(0, -10),
-          false);
+        Vector2(0, -10),
+        false);
   }
 }
 
 FutureAction goToBallAvoidingBallStrategyWithLidar(FieldProperties fP, RobotState cS) {
-
   if (targetJustBehindOfRobot(fP, cS, cS.ballPos())) {
     if (cS.myPos().x() < 0) {
       return FutureAction(
@@ -176,8 +181,8 @@ FutureAction goToBallAvoidingBallStrategyWithLidar(FieldProperties fP, RobotStat
 
   } else {
     return FutureAction(
-          Vector2(0, -10),
-          false);
+        Vector2(0, -10),
+        false);
   }
 }
 
