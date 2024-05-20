@@ -2,18 +2,22 @@
 
 #include "../src/strategy.h"
 
-TEST(FutureAction, accessToData) {
-  FutureAction fA = FutureAction(Vector2(50, 13), true);
-  ASSERT_EQ(fA.changeMove(), true);
+TEST(FutureAction, accessToDataWithTarget) {
+  FutureAction fA = FutureAction(Vector2(50, 13), 125, 1, true);
+  ASSERT_TRUE(fA.changeMove());
   ASSERT_EQ(fA.target(), Vector2(50, 13));
   ASSERT_EQ(fA.activeKicker(), true);
+  ASSERT_EQ(fA.celerity(), 125);
+  ASSERT_EQ(fA.orientation(), Radians(1));
 }
 
-TEST(FutureAction, accessToInfos) {
-  FutureAction fA = FutureAction(true);
-  ASSERT_EQ(fA.changeMove(), false);
+TEST(FutureAction, accessToDataWithoutTarget) {
+  FutureAction fA = FutureAction(130, 0.5, true);
+  ASSERT_FALSE(fA.changeMove());
   ASSERT_EQ(fA.target(), Vector2(0, 0));
   ASSERT_EQ(fA.activeKicker(), true);
+  ASSERT_EQ(fA.celerity(), 130);
+  ASSERT_EQ(fA.orientation(), Radians(0.5));
 }
 
 TEST(FutureAction, leavingField) {
