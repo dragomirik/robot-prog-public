@@ -123,8 +123,7 @@ void loop() {
     Vector2(0, 0),
     camInfos.myGoalPos(),
     camInfos.enemyGoalPos());
-  
-  int speedMotors = 80;   
+    
   double orientation = lidarInfos.getOrientation();
   if(lidarInfos.getOrientationRadians() == -9999) {
     orientation = 0;
