@@ -20,8 +20,8 @@ FutureAction::FutureAction(
       _activeKicker(activeKicker) {}
 
 ////////
-const int goalMinDistance = 35;
-const FutureAction stopRobot = FutureAction(Vector2(0, 0), 0, 0, false);  //@Gandalfph add orientation and celerity
+const int goalMinDistance = 75;
+const FutureAction stopRobot = FutureAction(Vector2(0, 0), 0, 0, false);
 FutureAction chooseStrategy(FieldProperties fP, RobotState cS) {
   if (robotIsLost(fP, cS)) {
     if (!ballIsDetected(fP, cS)) {
@@ -73,12 +73,25 @@ bool robotIsLost(FieldProperties fP, RobotState cS) {
 }
 
 bool leavingField(FieldProperties fP, RobotState cS) {
+  SerialDebug.println("Left wall : " + String(cS.myPos().x() < -fP.fieldWidth() / 2 + fP.robotRadius())
+  + " Right wall : " + String(fP.fieldWidth() / 2 - fP.robotRadius() < cS.myPos().x())
+  + " Back wall : " + String(cS.myPos().y() < -fP.fieldLength() / 2 + fP.robotRadius())
+  + " Front wall : " + String(fP.fieldLength() / 2 - fP.robotRadius() < cS.myPos().y())
+  + " Enemy goal : " + String(cS.enemyGoalPos().norm() < goalMinDistance && cS.enemyGoalPos().norm() > 1)
+  + " My goal : " + String(cS.myGoalPos().norm() < goalMinDistance && cS.myGoalPos().norm() > 1)  
+  );
+
+  SerialDebug.println(cS.myGoalPos().norm());
+
+  // SerialDebug.println(cS.myPos().y());
+  // SerialDebug.println(fP.fieldLength());
+  
   return (cS.myPos().x() < -fP.fieldWidth() / 2 + fP.robotRadius()) ||
          (fP.fieldWidth() / 2 - fP.robotRadius() < cS.myPos().x()) ||
          (cS.myPos().y() < -fP.fieldLength() / 2 + fP.robotRadius()) ||
          (fP.fieldLength() / 2 - fP.robotRadius() < cS.myPos().y()) ||
-         (cS.enemyGoalPos().norm() < goalMinDistance) ||
-         (cS.myGoalPos().norm() < goalMinDistance);
+         (cS.enemyGoalPos().norm() < goalMinDistance && cS.enemyGoalPos().norm() > 1) ||
+         (cS.myGoalPos().norm() < goalMinDistance && cS.myGoalPos().norm() > 1);
 }
 
 bool ballIsDetected(FieldProperties fP, RobotState cS) {
@@ -99,7 +112,7 @@ bool targetInFrontOfRobotFromMiddle(FieldProperties fP, RobotState cS, Vector2 t
 }
 
 bool targetCenterOfRobot(FieldProperties fP, RobotState cS, Vector2 tL) {
-  return abs(tL.x()) <= 6;
+  return abs(tL.x()) <= 12;
 }
 
 bool targetJustInFrontOfRobot(FieldProperties fP, RobotState cS, Vector2 tL) {
@@ -111,7 +124,7 @@ bool targetJustBehindOfRobot(FieldProperties fP, RobotState cS, Vector2 tL) {
 }
 
 bool ballIsCaught(FieldProperties fP, RobotState cS) {
-  return targetJustInFrontOfRobot(fP, cS, cS.ballPos()) && cS.ballPos().y() <= (fP.robotRadius() + 2 * fP.ballRadius()) * 1.25;
+  return targetJustInFrontOfRobot(fP, cS, cS.ballPos()) && cS.ballPos().y() <= 42;
 }
 
 FutureAction refrainFromLeavingStrategy(FieldProperties fP, RobotState cS) {
@@ -151,7 +164,7 @@ FutureAction goToBallStrategy(FieldProperties fP, RobotState cS) {
   return FutureAction(
       Vector2(
           cS.ballPos().x(),
-          cS.ballPos().y() - fP.robotRadius() * 1.5),
+          cS.ballPos().y() - fP.robotRadius() * 4),
       0,
       0,
       false);  //@Gandalfph add orientation and celerity
@@ -175,6 +188,7 @@ FutureAction goToBallAvoidingBallStrategyWithCam(FieldProperties fP, RobotState 
 }
 
 FutureAction goToBallAvoidingBallStrategyWithLidar(FieldProperties fP, RobotState cS) {
+  SerialDebug.println("goToBallAvoidingBallStrategyWithLidar");
   if (targetJustBehindOfRobot(fP, cS, cS.ballPos())) {
     if (cS.myPos().x() < 0) {
       return FutureAction(
@@ -201,7 +215,7 @@ FutureAction goToBallAvoidingBallStrategyWithLidar(FieldProperties fP, RobotStat
 }
 
 FutureAction accelerateToGoalStrategyWithCam(FieldProperties fP, RobotState cS) {
-  SerialDebug.println("accelerateToGoalStrategy");
+  SerialDebug.println("accelerateToGoalStrategyWithCam");
   return FutureAction(
       Vector2(
           cS.enemyGoalPos().x(),
@@ -212,7 +226,7 @@ FutureAction accelerateToGoalStrategyWithCam(FieldProperties fP, RobotState cS) 
 }
 
 FutureAction accelerateToGoalStrategyWithLidar(FieldProperties fP, RobotState cS) {
-  SerialDebug.println("accelerateToGoalStrategy");
+  SerialDebug.println("accelerateToGoalStrategyWithLidar");
   return FutureAction(
       Vector2(
           fP.enemyGoalPos().x() - cS.myPos().x(),
