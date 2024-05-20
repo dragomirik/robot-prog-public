@@ -27,6 +27,8 @@ class FutureAction {
   inline bool changeMove() const { return _target.hasValue(); }
   inline Vector2 target() const { return _target.value().toVector2(); }
   inline bool activeKicker() const { return _activeKicker; }
+  inline int celerity() const { return _celerity; }
+  inline Radians orientation() const { return _orientation; }
 };
 
 FutureAction chooseStrategy(FieldProperties fP, RobotState cS);
