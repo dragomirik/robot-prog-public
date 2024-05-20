@@ -39,6 +39,9 @@ void setup() {
 
   SerialCam.setTimeout(10);
   SerialLidar.setTimeout(10);
+
+  pinMode(13, OUTPUT);
+  pinMode(26, INPUT);
 }
 
 std::string extractLastCompleteSequence(const char* buffer) {
@@ -93,23 +96,26 @@ void loop() {
   SerialDebug.println("***");
   
   // Faire clignoter la LED pour s'assurer que le code tourne correctement
-  compteur++;
   if(compteur%2 == 0) {
     digitalWrite(13, HIGH);
+    compteur = 1;
   } else {
     digitalWrite(13, LOW);
+    compteur = 0;
   }
 
   // testsLidar(fieldProperties); // tests du LIDAR
   // return;
 
+  // GETTING LIDAR DATA
   LidarInfos lidarInfos = getLidarInfos(fieldProperties, true, false);
   SerialDebug.println("Coordonnées robot: x=" + String(lidarInfos.getCoordinates().x() / 10.0) + " cm, y=" 
         + String(lidarInfos.getCoordinates().y() / 10.0) + " cm, orientation: " + String(lidarInfos.getOrientation()) 
         + "°, Nearest Wall distance=" + String(lidarInfos.getNearestWall().distance({0,0}) / 10.0) + " cm");
   
-  
+  // GETTING CAM DATA
   RobotState camInfos = getCamInfos();
+
 
   RobotState currentState = RobotState(
     camInfos.ballPos(),
@@ -118,9 +124,7 @@ void loop() {
     camInfos.myGoalPos(),
     camInfos.enemyGoalPos());
   
-
-  int speedMotors = 80;
-  
+  int speedMotors = 80;   
   double orientation = lidarInfos.getOrientation();
   if(lidarInfos.getOrientationRadians() == -9999) {
     orientation = 0;
@@ -128,13 +132,16 @@ void loop() {
 
   // DOING ACTION
   // TODO: must work without lidar data or without cam data
-  FutureAction action = chooseStrategy(fieldProperties, currentState);
-  if (action.changeMove()) {
-    // TODO: FutureAction must include rotation and speed !
-    motors.goTo(action.target(), speedMotors, orientation);
-  }
-  if (action.activeKicker()) {
-    // TODO active kicker
+  if(digitalRead(26)) {
+    FutureAction action = chooseStrategy(fieldProperties, currentState);
+    if (action.changeMove()) {
+      motors.goTo(action.target(), action.celerity(), action.orientation());
+    }
+    if (action.activeKicker()) {
+      // TODO active kicker
+    }
+  } else {
+    motors.fullStop();
   }
   
   unsigned long elapsed = millis() - start_millis;
