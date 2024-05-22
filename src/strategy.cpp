@@ -73,23 +73,23 @@ bool robotIsLost(FieldProperties fP, RobotState cS) {
 }
 
 bool leavingField(FieldProperties fP, RobotState cS) {
-  SerialDebug.println("Left wall : " + String(cS.myPos().x() < -fP.fieldWidth() / 2 + fP.robotRadius())
-  + " Right wall : " + String(fP.fieldWidth() / 2 - fP.robotRadius() < cS.myPos().x())
-  + " Back wall : " + String(cS.myPos().y() < -fP.fieldLength() / 2 + fP.robotRadius())
-  + " Front wall : " + String(fP.fieldLength() / 2 - fP.robotRadius() < cS.myPos().y())
+  SerialDebug.println("Left wall : " + String(cS.myPos().x() < -fP.fieldWidth() / 2 + 3*fP.robotRadius())
+  + " Right wall : " + String((fP.fieldWidth() / 2) - 3*fP.robotRadius() < cS.myPos().x())
+  + " Back wall : " + String(cS.myPos().y() < -fP.fieldLength() / 2 + 3*fP.robotRadius())
+  + " Front wall : " + String(fP.fieldLength() / 2 - 3*fP.robotRadius() < cS.myPos().y())
   + " Enemy goal : " + String(cS.enemyGoalPos().norm() < goalMinDistance && cS.enemyGoalPos().norm() > 1)
   + " My goal : " + String(cS.myGoalPos().norm() < goalMinDistance && cS.myGoalPos().norm() > 1)  
   );
 
-  SerialDebug.println(cS.myGoalPos().norm());
+  SerialDebug.println(cS.myPos().x());
 
   // SerialDebug.println(cS.myPos().y());
   // SerialDebug.println(fP.fieldLength());
   
-  return (cS.myPos().x() < -fP.fieldWidth() / 2 + fP.robotRadius()) ||
-         (fP.fieldWidth() / 2 - fP.robotRadius() < cS.myPos().x()) ||
-         (cS.myPos().y() < -fP.fieldLength() / 2 + fP.robotRadius()) ||
-         (fP.fieldLength() / 2 - fP.robotRadius() < cS.myPos().y()) ||
+  return (cS.myPos().x() < -fP.fieldWidth() / 2 + 3*fP.robotRadius()) ||
+         (fP.fieldWidth() / 2 - 3*fP.robotRadius() < cS.myPos().x()) ||
+         (cS.myPos().y() < -fP.fieldLength() / 2 + 3*fP.robotRadius()) ||
+         (fP.fieldLength() / 2 - 3*fP.robotRadius() < cS.myPos().y()) ||
          (cS.enemyGoalPos().norm() < goalMinDistance && cS.enemyGoalPos().norm() > 1) ||
          (cS.myGoalPos().norm() < goalMinDistance && cS.myGoalPos().norm() > 1);
 }
@@ -132,15 +132,15 @@ FutureAction refrainFromLeavingStrategy(FieldProperties fP, RobotState cS) {
   int xDirection = 0;
   int yDirection = 0;
 
-  if (cS.myPos().x() < -fP.fieldWidth() / 2 + fP.robotRadius()) {
+  if (cS.myPos().x() < -fP.fieldWidth() / 2 + 3*fP.robotRadius()) {
     xDirection = 10;
-  } else if (fP.fieldWidth() / 2 - fP.robotRadius() < cS.myPos().x()) {
+  } else if (fP.fieldWidth() / 2 - 3*fP.robotRadius() < cS.myPos().x()) {
     xDirection = -10;
   }
 
-  if (cS.myPos().y() < -fP.fieldLength() / 2 + fP.robotRadius()) {
+  if (cS.myPos().y() < -fP.fieldLength() / 2 + 3*fP.robotRadius()) {
     yDirection = 10;
-  } else if (fP.fieldLength() / 2 - fP.robotRadius() < cS.myPos().y()) {
+  } else if (fP.fieldLength() / 2 - 3*fP.robotRadius() < cS.myPos().y()) {
     yDirection = -10;
   }
 
@@ -164,7 +164,7 @@ FutureAction goToBallStrategy(FieldProperties fP, RobotState cS) {
   return FutureAction(
       Vector2(
           cS.ballPos().x(),
-          cS.ballPos().y() - fP.robotRadius() * 4),
+          cS.ballPos().y() - fP.robotRadius() * 2),
       0,
       0,
       false);  //@Gandalfph add orientation and celerity

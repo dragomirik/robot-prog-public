@@ -91,6 +91,13 @@ RobotState getCamInfos() {
 
 int compteur;
 
+void aloop() {
+  motors.goTo(Vector2(0, -100), 100, 0);
+  delay(1000);
+  motors.goTo(Vector2(0, 100), 100, 0);
+  delay(1000);
+}
+
 void loop() {
   unsigned long start_millis = millis();
   SerialDebug.println("***");
@@ -131,16 +138,13 @@ void loop() {
 
   // DOING ACTION
   // TODO: must work without lidar data or without cam data
-  if(digitalRead(26)) {
-    FutureAction action = chooseStrategy(fieldProperties, currentState);
-    if (action.changeMove()) {
-      motors.goTo(action.target(), action.celerity(), action.orientation());
-    }
-    if (action.activeKicker()) {
-      // TODO active kicker
-    }
-  } else {
-    motors.fullStop();
+  FutureAction action = chooseStrategy(fieldProperties, currentState);
+  if (action.changeMove()) {
+    motors.goTo(action.target(), 100, orientation);
+    SerialDebug.println(action.target().toString());
+  }
+  if (action.activeKicker()) {
+    // TODO active kicker
   }
   
   unsigned long elapsed = millis() - start_millis;
