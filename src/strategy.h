@@ -31,7 +31,7 @@ class FutureAction {
   inline Radians orientation() const { return _orientation; }
 };
 
-FutureAction chooseStrategy(FieldProperties fP, RobotState cS);
+FutureAction chooseStrategy(FieldProperties fP, RobotState cS, double orientation, Vector2 nearestWall);
 
 bool robotIsLost(FieldProperties fP, RobotState cS);
 bool leavingField(FieldProperties fP, RobotState cS);
@@ -44,7 +44,7 @@ bool goalIsDetected(FieldProperties fP, RobotState cS);
 bool ballIsDetected(FieldProperties fP, RobotState cS);
 bool ballIsCaught(FieldProperties fP, RobotState cS);
 
-FutureAction refrainFromLeavingStrategy(FieldProperties fP, RobotState cS);
+FutureAction refrainFromLeavingStrategy(FieldProperties fP, RobotState cS, double orientation, Vector2 nearestWall);
 FutureAction goToBallStrategy(FieldProperties fP, RobotState cS);
 FutureAction goToBallAvoidingBallStrategyWithCam(FieldProperties fP, RobotState cS);
 FutureAction goToBallAvoidingBallStrategyWithLidar(FieldProperties fP, RobotState cS);

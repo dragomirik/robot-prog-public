@@ -146,13 +146,13 @@ void loop() {
 
   // DOING ACTION
   // TODO: must work without lidar data or without cam data
-  FutureAction action = chooseStrategy(fieldProperties, currentState);
+  FutureAction action = chooseStrategy(fieldProperties, currentState, orientation, lidarInfos.getNearestWall());
   if (action.changeMove()) {
     int speedmotors = action.celerity();
     if (action.celerity() == 0) {
       speedmotors = 100;
     }
-    motors.goTo(action.target(), speedmotors, orientation);
+    motors.goTo(action.target(), action.celerity(), lidarInfos.getOrientation() - action.orientation());
   }
   if (action.activeKicker()) {
     // TODO active kicker

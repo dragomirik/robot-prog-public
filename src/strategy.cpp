@@ -20,9 +20,10 @@ FutureAction::FutureAction(
       _activeKicker(activeKicker) {}
 
 ////////
+const int speedmotors = 100;
 const int goalMinDistance = 75;
 const FutureAction stopRobot = FutureAction(Vector2(0, 0), 0, 0, false);
-FutureAction chooseStrategy(FieldProperties fP, RobotState cS) {
+FutureAction chooseStrategy(FieldProperties fP, RobotState cS, double orientation, Vector2 nearestWall) {
   if (robotIsLost(fP, cS)) {
     if (!ballIsDetected(fP, cS)) {
       return stopRobot;
@@ -46,7 +47,7 @@ FutureAction chooseStrategy(FieldProperties fP, RobotState cS) {
 
   } else {
     if (leavingField(fP, cS)) {
-      return refrainFromLeavingStrategy(fP, cS);
+      return refrainFromLeavingStrategy(fP, cS, orientation, nearestWall);
 
     } else if (!ballIsDetected(fP, cS)) {
       return slalowingBackwardsStrategy(fP, cS);
@@ -75,8 +76,8 @@ bool robotIsLost(FieldProperties fP, RobotState cS) {
 bool leavingField(FieldProperties fP, RobotState cS) {
   SerialDebug.println("Left wall : " + String(cS.myPos().x() < -fP.fieldWidth() / 2 + 3*fP.robotRadius())
   + " Right wall : " + String((fP.fieldWidth() / 2) - 3*fP.robotRadius() < cS.myPos().x())
-  + " Back wall : " + String(cS.myPos().y() < -fP.fieldLength() / 2 + 3*fP.robotRadius())
-  + " Front wall : " + String(fP.fieldLength() / 2 - 3*fP.robotRadius() < cS.myPos().y())
+  + " Back wall : " + String(cS.myPos().y() < -fP.fieldLength() / 2 + 4*fP.robotRadius())
+  + " Front wall : " + String(fP.fieldLength() / 2 - 4*fP.robotRadius() < cS.myPos().y())
   + " Enemy goal : " + String(cS.enemyGoalPos().norm() < goalMinDistance && cS.enemyGoalPos().norm() > 1)
   + " My goal : " + String(cS.myGoalPos().norm() < goalMinDistance && cS.myGoalPos().norm() > 1)  
   );
@@ -86,8 +87,8 @@ bool leavingField(FieldProperties fP, RobotState cS) {
   
   return (cS.myPos().x() < -fP.fieldWidth() / 2 + 3*fP.robotRadius()) ||
          (fP.fieldWidth() / 2 - 3*fP.robotRadius() < cS.myPos().x()) ||
-         (cS.myPos().y() < -fP.fieldLength() / 2 + 3*fP.robotRadius()) ||
-         (fP.fieldLength() / 2 - 3*fP.robotRadius() < cS.myPos().y()) ||
+         (cS.myPos().y() < -fP.fieldLength() / 2 + 4*fP.robotRadius()) ||
+         (fP.fieldLength() / 2 - 4*fP.robotRadius() < cS.myPos().y()) ||
          (cS.enemyGoalPos().norm() < goalMinDistance && cS.enemyGoalPos().norm() > 1) ||
          (cS.myGoalPos().norm() < goalMinDistance && cS.myGoalPos().norm() > 1);
 }
@@ -125,36 +126,42 @@ bool ballIsCaught(FieldProperties fP, RobotState cS) {
   return targetJustInFrontOfRobot(fP, cS, cS.ballPos()) && cS.ballPos().y() <= 42;
 }
 
-FutureAction refrainFromLeavingStrategy(FieldProperties fP, RobotState cS) {
+FutureAction refrainFromLeavingStrategy(FieldProperties fP, RobotState cS, double orientation, Vector2 nearestWall) {
   SerialDebug.println("refrainFromLeavingStrategy");
   int xDirection = 0;
   int yDirection = 0;
 
   if (cS.myPos().x() < -fP.fieldWidth() / 2 + 3*fP.robotRadius()) {
-    xDirection = 10;
+    xDirection = 10*cos(orientation);
+    yDirection = 10*sin(orientation);
   } else if (fP.fieldWidth() / 2 - 3*fP.robotRadius() < cS.myPos().x()) {
-    xDirection = -10;
+    xDirection = -10*cos(orientation);
+    yDirection = -10*sin(orientation);
   }
 
-  if (cS.myPos().y() < -fP.fieldLength() / 2 + 3*fP.robotRadius()) {
-    yDirection = 10;
-  } else if (fP.fieldLength() / 2 - 3*fP.robotRadius() < cS.myPos().y()) {
-    yDirection = -10;
+  if (cS.myPos().y() < -fP.fieldLength() / 2 + 4*fP.robotRadius() ||
+      cS.enemyGoalPos().norm() < goalMinDistance) {
+    xDirection = 10*sin(orientation);
+    yDirection = 10*cos(orientation);
+  } else if (fP.fieldLength() / 2 - 4*fP.robotRadius() < cS.myPos().y() ||
+             cS.myGoalPos().norm() < goalMinDistance) {
+    xDirection = -10*sin(orientation);
+    yDirection = -10*cos(orientation);
   }
 
-  if (cS.enemyGoalPos().norm() < goalMinDistance) {
-    yDirection = -10;
-  } else if (cS.myGoalPos().norm() < goalMinDistance) {
-    yDirection = 10;
+  if (nearestWall.distance({0,0}) / 10.0 < 4*fP.robotRadius()) {
+    xDirection = -nearestWall.x();
+    yDirection = -nearestWall.y();
   }
+
   SerialDebug.println(String(xDirection) + " " + String(yDirection));
   return FutureAction(
       Vector2(
           xDirection,
           yDirection),
+      speedmotors,
       0,
-      0,
-      false);  //@Gandalfph add orientation and celerity
+      false); 
 }
 
 FutureAction goToBallStrategy(FieldProperties fP, RobotState cS) {
@@ -163,31 +170,31 @@ FutureAction goToBallStrategy(FieldProperties fP, RobotState cS) {
       Vector2(
           cS.ballPos().x(),
           cS.ballPos().y() - fP.robotRadius() * 4),
+      speedmotors,
       0,
-      0,
-      false);  //@Gandalfph add orientation and celerity
+      false);  
 }
 
 FutureAction goToBallAvoidingBallStrategyWithCam(FieldProperties fP, RobotState cS) {
   if (targetJustBehindOfRobot(fP, cS, cS.ballPos())) {
     return FutureAction(
         Vector2(10, -10),
+        speedmotors,
         0,
-        0,
-        false);  //@Gandalfph add orientation and celerity
+        false);  
 
   } else if (cS.myPos().x() < 0) {
     return FutureAction(
         Vector2(2, -10),
+        speedmotors,
         0,
-        0,
-        false);  //@Gandalfph add orientation and celerity
+        false);  
   } else if (cS.myPos().x() < 0) {
     return FutureAction(
         Vector2(-2, -10),
+        speedmotors,
         0,
-        0,
-        false);  //@Gandalfph add orientation and celerity
+        false);  
   }
 }
 
@@ -197,112 +204,141 @@ FutureAction goToBallAvoidingBallStrategyWithLidar(FieldProperties fP, RobotStat
     if (cS.myPos().x() < 0) {
       return FutureAction(
           Vector2(10, -10),
+          speedmotors,
           0,
-          0,
-          false);  //@Gandalfph add orientation and celerity
+          false); 
 
     } else {
       return FutureAction(
           Vector2(-10, -10),
+          speedmotors,
           0,
-          0,
-          false);  //@Gandalfph add orientation and celerity
+          false);  
     }
 
   } else if (cS.myPos().x() < 0) {
     return FutureAction(
         Vector2(2, -10),
+        speedmotors,
         0,
-        0,
-        false);  //@Gandalfph add orientation and celerity
+        false);  
   } else if (cS.myPos().x() > 0) {
     return FutureAction(
         Vector2(-2, -10),
+        speedmotors,
         0,
-        0,
-        false);  //@Gandalfph add orientation and celerity
+        false);  
   }
 }
 
 FutureAction accelerateToGoalStrategyWithCam(FieldProperties fP, RobotState cS) {
   SerialDebug.println("accelerateToGoalStrategyWithCam");
+  
+  int orientation;
+  if (cS.enemyGoalPos().x() > 10) {
+    orientation = 10;
+  } else if (cS.enemyGoalPos().x() < -10) {
+    orientation = -10;
+  }
+  
   return FutureAction(
       Vector2(
           cS.enemyGoalPos().x(),
-          cS.enemyGoalPos().y() - 15),
-      0,
-      0,
-      false);  //@Gandalfph add orientation and celerity
+          cS.enemyGoalPos().y() - 10),
+      speedmotors,
+      orientation,
+      false); 
 }
 
 FutureAction accelerateToGoalStrategyWithLidar(FieldProperties fP, RobotState cS) {
   SerialDebug.println("accelerateToGoalStrategyWithLidar");
+
+  int orientation = 0;
+  if (cS.myPos().x() > 20) {
+    orientation = -20;
+  } else if (cS.myPos().x() > 20) {
+    orientation = 20;
+  }
+
   return FutureAction(
       Vector2(
           fP.enemyGoalPos().x() - cS.myPos().x(),
-          fP.enemyGoalPos().y() - cS.myPos().y() - 15),
-      0,
-      0,
-      false);  //@Gandalfph add orientation and celerity
+          fP.enemyGoalPos().y() - cS.myPos().y() - 10),
+      speedmotors,
+      orientation,
+      false);  
 }
 
 FutureAction slalowingBackwardsStrategy(FieldProperties fP, RobotState cS) {
   SerialDebug.println("slalowingBackwardsStrategy");
-  if (cS.myPos().y() < -70) {
-    if (cS.myPos().x() < -5) {
-      return FutureAction(
-          Vector2(10, 0),
-          0,
-          0,
-          false);  //@Gandalfph add orientation and celerity
-    } else if (5 < cS.myPos().x()) {
-      return FutureAction(
-          Vector2(-10, 0),
-          0,
-          0,
-          false);  //@Gandalfph add orientation and celerity
-    } else {
-      return FutureAction(
-          Vector2(0, 10),
-          0,
-          0,
-          false);  //@Gandalfph add orientation and celerity
-    }
+  if (cS.myPos().y() < -50) {
+    return FutureAction(
+           Vector2(0, 0),
+           0,
+           0,
+           false);  
+    // if (cS.myPos().x() < -5) {
+    //   return FutureAction(
+    //       Vector2(10, 0),
+    //       speedmotors,
+    //       0,
+    //       false);  
+    // } else if (5 < cS.myPos().x()) {
+    //   return FutureAction(
+    //       Vector2(-10, 0),
+    //       speedmotors,
+    //       0,
+    //       false);  
+    // } else {
+    //   return FutureAction(
+    //       Vector2(0, 10),
+    //       speedmotors,
+    //       0,
+    //       false);  
+    // }
 
   } else if (50 < cS.myPos().y()) {
     return FutureAction(
         Vector2(-20, -10),
+        speedmotors,
         0,
-        0,
-        false);  //@Gandalfph add orientation and celerity
+        false); 
 
   } else {
     if (cS.myPos().x() < -fP.fieldWidth() / 6) {
       return FutureAction(
           Vector2(20, -10),
+          speedmotors,
           0,
-          0,
-          false);  //@Gandalfph add orientation and celerity
+          false);  
     } else if (fP.fieldWidth() / 6 < cS.myPos().x()) {
       return FutureAction(
           Vector2(-20, -10),
+          speedmotors,
           0,
-          0,
-          false);  //@Gandalfph add orientation and celerity
+          false);  
     } else {
       return FutureAction(
+          speedmotors,
           0,
-          0,
-          false);  //@Gandalfph add orientation and celerity
+          false); 
     }
   }
 }
 
 FutureAction shootStrategy(FieldProperties fP, RobotState cS) {
   SerialDebug.println("shootStrategy");
+  
+  int shootSpeed;
+  if (speedmotors*2 > 255) {
+    shootSpeed = 255;
+  } else {
+    shootSpeed = speedmotors*2;
+  }
+  
   return FutureAction(
       Vector2(0, 20),
-      200,
+      shootSpeed,
       0,
-      true);  //@Gandalfph add orientation and celerity
+      true);  
 }
