@@ -81,8 +81,6 @@ bool leavingField(FieldProperties fP, RobotState cS) {
   + " My goal : " + String(cS.myGoalPos().norm() < goalMinDistance && cS.myGoalPos().norm() > 1)  
   );
 
-  SerialDebug.println(cS.myPos().x());
-
   // SerialDebug.println(cS.myPos().y());
   // SerialDebug.println(fP.fieldLength());
   
@@ -112,7 +110,7 @@ bool targetInFrontOfRobotFromMiddle(FieldProperties fP, RobotState cS, Vector2 t
 }
 
 bool targetCenterOfRobot(FieldProperties fP, RobotState cS, Vector2 tL) {
-  return abs(tL.x()) <= 12;
+  return abs(tL.x()) <= 6;
 }
 
 bool targetJustInFrontOfRobot(FieldProperties fP, RobotState cS, Vector2 tL) {
@@ -149,7 +147,7 @@ FutureAction refrainFromLeavingStrategy(FieldProperties fP, RobotState cS) {
   } else if (cS.myGoalPos().norm() < goalMinDistance) {
     yDirection = 10;
   }
-
+  SerialDebug.println(String(xDirection) + " " + String(yDirection));
   return FutureAction(
       Vector2(
           xDirection,
@@ -164,7 +162,7 @@ FutureAction goToBallStrategy(FieldProperties fP, RobotState cS) {
   return FutureAction(
       Vector2(
           cS.ballPos().x(),
-          cS.ballPos().y() - fP.robotRadius() * 2),
+          cS.ballPos().y() - fP.robotRadius() * 4),
       0,
       0,
       false);  //@Gandalfph add orientation and celerity
@@ -178,9 +176,15 @@ FutureAction goToBallAvoidingBallStrategyWithCam(FieldProperties fP, RobotState 
         0,
         false);  //@Gandalfph add orientation and celerity
 
-  } else {
+  } else if (cS.myPos().x() < 0) {
     return FutureAction(
-        Vector2(0, -10),
+        Vector2(2, -10),
+        0,
+        0,
+        false);  //@Gandalfph add orientation and celerity
+  } else if (cS.myPos().x() < 0) {
+    return FutureAction(
+        Vector2(-2, -10),
         0,
         0,
         false);  //@Gandalfph add orientation and celerity
@@ -205,9 +209,15 @@ FutureAction goToBallAvoidingBallStrategyWithLidar(FieldProperties fP, RobotStat
           false);  //@Gandalfph add orientation and celerity
     }
 
-  } else {
+  } else if (cS.myPos().x() < 0) {
     return FutureAction(
-        Vector2(0, -10),
+        Vector2(2, -10),
+        0,
+        0,
+        false);  //@Gandalfph add orientation and celerity
+  } else if (cS.myPos().x() > 0) {
+    return FutureAction(
+        Vector2(-2, -10),
         0,
         0,
         false);  //@Gandalfph add orientation and celerity
@@ -292,7 +302,7 @@ FutureAction shootStrategy(FieldProperties fP, RobotState cS) {
   SerialDebug.println("shootStrategy");
   return FutureAction(
       Vector2(0, 20),
-      0,
+      200,
       0,
       true);  //@Gandalfph add orientation and celerity
 }

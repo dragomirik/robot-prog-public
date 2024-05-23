@@ -136,12 +136,23 @@ void loop() {
     orientation = 0;
   }
 
+  if (camInfos.enemyGoalPos().y() < 0) {
+    if (camInfos.enemyGoalPos().x() > 0) {
+      orientation = -180;
+    } else {
+      orientation = 180;
+    }
+  }
+
   // DOING ACTION
   // TODO: must work without lidar data or without cam data
   FutureAction action = chooseStrategy(fieldProperties, currentState);
   if (action.changeMove()) {
-    motors.goTo(action.target(), 100, orientation);
-    SerialDebug.println(action.target().toString());
+    int speedmotors = action.celerity();
+    if (action.celerity() == 0) {
+      speedmotors = 100;
+    }
+    motors.goTo(action.target(), speedmotors, orientation);
   }
   if (action.activeKicker()) {
     // TODO active kicker
