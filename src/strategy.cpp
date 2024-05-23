@@ -21,7 +21,7 @@ FutureAction::FutureAction(
 
 ////////
 const int criticalWallDistance = 35;
-const int goalMinDistance = 90;
+const int goalMinDistance = 85; // 85 pour SN10 et 90 pour SN9
 const int speedmotors = 100;
 const FutureAction stopRobot = FutureAction(Vector2(0, 0), 0, 0, false);
 FutureAction chooseStrategy(FieldProperties fP, RobotState cS, double orientation, Vector2 nearestWall) {

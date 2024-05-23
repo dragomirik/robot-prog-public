@@ -96,6 +96,14 @@ void aloop() {
   delay(1000);
   motors.goTo(Vector2(0, 100), 100, 0);
   delay(1000);
+
+  if(compteur%2 == 0) {
+    digitalWrite(13, HIGH);
+    compteur = 1;
+  } else {
+    digitalWrite(13, LOW);
+    compteur = 0;
+  }
 }
 
 void loop() {
