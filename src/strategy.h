@@ -34,7 +34,7 @@ class FutureAction {
 FutureAction chooseStrategy(FieldProperties fP, RobotState cS, double orientation, Vector2 nearestWall);
 
 bool robotIsLost(FieldProperties fP, RobotState cS);
-bool leavingField(FieldProperties fP, RobotState cS);
+bool leavingField(FieldProperties fP, RobotState cS, Vector2 nearestWall);
 bool targetInFrontOfRobotFromFront(FieldProperties fP, RobotState cS, Vector2 tL);
 bool targetInFrontOfRobotFromMiddle(FieldProperties fP, RobotState cS, Vector2 tL);
 bool targetCenterOfRobot(FieldProperties fP, RobotState cS, Vector2 tL);
