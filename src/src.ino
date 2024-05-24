@@ -162,7 +162,7 @@ void loop() {
   // TODO: must work without lidar data or without cam data
   FutureAction action = chooseStrategy(fieldProperties, currentState, orientation, lidarInfos.getNearestWall());
   if (action.changeMove()) {
-    motors.goTo(action.target(), action.celerity(), orientation);
+    motors.goTo(action.target(), action.celerity(), 0);
     SerialDebug.println("Direction : " + action.target().toString() + " Vitesse : " + String(action.celerity()) + " Orientation : " + String(orientation));
   }
   if (action.activeKicker()) {

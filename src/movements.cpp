@@ -90,7 +90,7 @@ void Motors::fullStop() const {
 
 void Motors::goTo(Vector2 vector, int celerity, float orientation) const {
   // If the distance to the destination is less than x, stop the motors
-  if (vector.norm() < 3) {  // TODO faire de 3 un parametre global
+  if (vector.norm() < 0) {  // TODO faire de 3 un parametre global
     fullStop();
   } else {
     // The speed to be sent to the motors is calculated
@@ -105,6 +105,7 @@ void Motors::goTo(Vector2 vector, int celerity, float orientation) const {
     float rotation = orientation * celerity * 0.01;
 
     // SerialDebug.println("rapport : " + String(rapport));
+    //SerialDebug.println(MFRcelerity);
 
     // Speeds are recalculated taking into account the desired speed and
     // Sends speeds to motors
