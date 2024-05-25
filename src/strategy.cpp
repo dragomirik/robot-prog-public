@@ -21,8 +21,8 @@ FutureAction::FutureAction(
 
 ////////
 const int criticalWallDistance = 25;
-const int goalMinDistance = 85; // 80 pour SN10 et 85 pour SN9
-const int speedmotors = 100;
+const int goalMinDistance = 95; // 85 pour SN10 et 95 pour SN9
+const int speedmotors = 120;
 const FutureAction stopRobot = FutureAction(Vector2(0, 0), 0, 0, false);
 FutureAction chooseStrategy(FieldProperties fP, RobotState cS, double orientation, Vector2 nearestWall) {
   if (robotIsLost(fP, cS)) {
@@ -123,7 +123,7 @@ bool targetInFrontOfRobotFromMiddle(FieldProperties fP, RobotState cS, Vector2 t
 }
 
 bool targetCenterOfRobot(FieldProperties fP, RobotState cS, Vector2 tL) {
-  return abs(tL.x()) <= 15;
+  return abs(tL.x()) <= 25;
 }
 
 bool targetJustInFrontOfRobot(FieldProperties fP, RobotState cS, Vector2 tL) {
@@ -199,7 +199,7 @@ FutureAction goToBallStrategy(FieldProperties fP, RobotState cS) {
   return FutureAction(
       Vector2(
           cS.ballPos().x(),
-          cS.ballPos().y() - fP.robotRadius() * 3),
+          cS.ballPos().y() - fP.robotRadius() * 4),
       speedmotors,
       0,
       false);  //@Gandalfph add orientation and celerity
@@ -365,12 +365,12 @@ FutureAction shootStrategy(FieldProperties fP, RobotState cS) {
   
   // int shootSpeed = min(speedmotors*2, 255);
 
-  int shootSpeed;
-  if (speedmotors*2 > 255) {
-    shootSpeed = 255;
-  } else {
-    shootSpeed = speedmotors*2;
-  }
+  int shootSpeed = 180;
+  // if (speedmotors*2 > 255) {
+  //   shootSpeed = 255;
+  // } else {
+  //   shootSpeed = speedmotors*2;
+  // }
   
   return FutureAction(
       Vector2(0, 20),

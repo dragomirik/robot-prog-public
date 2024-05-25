@@ -144,13 +144,13 @@ void loop() {
     orientation = 0;
   }
 
-  if (camInfos.enemyGoalPos().y() < 30 && camInfos.enemyGoalPos().y() != 0) {
+  if (camInfos.enemyGoalPos().y() < 50 && camInfos.enemyGoalPos().y() != 0) {
     if (camInfos.enemyGoalPos().x() > 0) {
       orientation = -180;
     } else {
       orientation = 180;
     }
-  } else if (camInfos.myGoalPos().y() > 30 && camInfos.myGoalPos().y() != 0) {
+  } else if (camInfos.myGoalPos().y() > 50 && camInfos.myGoalPos().y() != 0) {
     if (camInfos.myGoalPos().x() > 0) {
       orientation = 180;
     } else {
@@ -162,7 +162,7 @@ void loop() {
   // TODO: must work without lidar data or without cam data
   FutureAction action = chooseStrategy(fieldProperties, currentState, orientation, lidarInfos.getNearestWall());
   if (action.changeMove()) {
-    motors.goTo(action.target(), action.celerity(), 0);
+    motors.goTo(action.target(), action.celerity(), orientation);
     SerialDebug.println("Direction : " + action.target().toString() + " Vitesse : " + String(action.celerity()) + " Orientation : " + String(orientation));
   }
   if (action.activeKicker()) {
