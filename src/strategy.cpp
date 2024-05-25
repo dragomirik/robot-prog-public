@@ -21,7 +21,8 @@ FutureAction::FutureAction(
 
 ////////
 const int criticalWallDistance = 25;
-const int goalMinDistance = 95; // 85 pour SN10 et 95 pour SN9
+const int goalMinDistance = 85; // 85 pour SN10 et 95 pour SN9
+const int myGoalMinDistance = 82; 
 const int speedmotors = 120;
 const FutureAction stopRobot = FutureAction(Vector2(0, 0), 0, 0, false);
 FutureAction chooseStrategy(FieldProperties fP, RobotState cS, double orientation, Vector2 nearestWall) {
@@ -85,7 +86,7 @@ bool leavingField(FieldProperties fP, RobotState cS, Vector2 nearestWall) {
     + " Back wall : " + String(cS.myPos().y() < -fP.fieldLength() / 2 + 3*fP.robotRadius())
     + " Front wall : " + String(fP.fieldLength() / 2 - 3*fP.robotRadius() < cS.myPos().y())
     + " Enemy goal : " + String(cS.enemyGoalPos().norm() < goalMinDistance && cS.enemyGoalPos().norm() > 1)
-    + " My goal : " + String(cS.myGoalPos().norm() < goalMinDistance && cS.myGoalPos().norm() > 1)  
+    + " My goal : " + String(cS.myGoalPos().norm() < myGoalMinDistance && cS.myGoalPos().norm() > 1)
     + " Nearest wall : " + String(nearestWall.distance({0,0}) / 10.0 < criticalWallDistance));
 
     // SerialDebug.println(cS.myPos().y());
@@ -96,11 +97,11 @@ bool leavingField(FieldProperties fP, RobotState cS, Vector2 nearestWall) {
           (cS.myPos().y() < -fP.fieldLength() / 2 + 3*fP.robotRadius()) ||
           (fP.fieldLength() / 2 - 3*fP.robotRadius() < cS.myPos().y()) ||
           (cS.enemyGoalPos().norm() < goalMinDistance && cS.enemyGoalPos().norm() > 1) ||
-          (cS.myGoalPos().norm() < goalMinDistance && cS.myGoalPos().norm() > 1) ||
+          (cS.myGoalPos().norm() < myGoalMinDistance && cS.myGoalPos().norm() > 1) ||
           (nearestWall.distance({0,0}) / 10.0 < criticalWallDistance);
   } else {
     return (cS.enemyGoalPos().norm() < goalMinDistance && cS.enemyGoalPos().norm() > 1) ||
-           (cS.myGoalPos().norm() < goalMinDistance && cS.myGoalPos().norm() > 1) ||
+           (cS.myGoalPos().norm() < myGoalMinDistance && cS.myGoalPos().norm() > 1) ||
            (nearestWall.distance({0,0}) / 10.0 < criticalWallDistance);
   }
 }
@@ -151,7 +152,7 @@ FutureAction refrainFromLeavingStrategy(FieldProperties fP, RobotState cS, doubl
   if (cS.enemyGoalPos().norm() < goalMinDistance && cS.enemyGoalPos().norm() > 1) {
     xDirection = -sin(orientationRadians);
     yDirection = -cos(orientationRadians);
-  } else if (cS.myGoalPos().norm() < goalMinDistance && cS.myGoalPos().norm() > 1) {
+  } else if (cS.myGoalPos().norm() < myGoalMinDistance && cS.myGoalPos().norm() > 1) {
     xDirection = sin(orientationRadians);
     yDirection = cos(orientationRadians);
   }
