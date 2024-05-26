@@ -22,7 +22,7 @@ FutureAction::FutureAction(
 ////////
 const int criticalWallDistance = 25;
 const int goalMinDistance = 85; // 85 pour SN10 et 95 pour SN9
-const int myGoalMinDistance = 82; 
+const int myGoalMinDistance = 85; 
 const int speedmotors = 120;
 const FutureAction stopRobot = FutureAction(Vector2(0, 0), 0, 0, false);
 FutureAction chooseStrategy(FieldProperties fP, RobotState cS, double orientation, Vector2 nearestWall) {
@@ -81,20 +81,24 @@ bool robotIsLost(FieldProperties fP, RobotState cS) {
 
 bool leavingField(FieldProperties fP, RobotState cS, Vector2 nearestWall) {
   if (!robotIsLost(fP, cS)) {
-    SerialDebug.println("Left wall : " + String(cS.myPos().x() < -fP.fieldWidth() / 2 + 3*fP.robotRadius())
-    + " Right wall : " + String((fP.fieldWidth() / 2) - 3*fP.robotRadius() < cS.myPos().x())
-    + " Back wall : " + String(cS.myPos().y() < -fP.fieldLength() / 2 + 3*fP.robotRadius())
-    + " Front wall : " + String(fP.fieldLength() / 2 - 3*fP.robotRadius() < cS.myPos().y())
-    + " Enemy goal : " + String(cS.enemyGoalPos().norm() < goalMinDistance && cS.enemyGoalPos().norm() > 1)
-    + " My goal : " + String(cS.myGoalPos().norm() < myGoalMinDistance && cS.myGoalPos().norm() > 1)
-    + " Nearest wall : " + String(nearestWall.distance({0,0}) / 10.0 < criticalWallDistance));
-
+    
     int distanceDevitementY;
     if (abs(cS.myPos().x()) < 40) {
       distanceDevitementY = 50;
+    } else if (abs(cS.myPos().x()) < 40 && abs(cS.myPos().x() >= 30)) {
+      distanceDevitementY = 35;
     } else {
       distanceDevitementY = criticalWallDistance;
     }
+
+    SerialDebug.println("Left wall : " + String(cS.myPos().x() < -fP.fieldWidth() / 2 + criticalWallDistance)
+    + " Right wall : " + String(fP.fieldWidth() / 2 - criticalWallDistance < cS.myPos().x())
+    + " Back wall : " + String(cS.myPos().y() < -fP.fieldLength() / 2 + distanceDevitementY - 5)
+    + " Front wall : " + String(fP.fieldLength() / 2 - distanceDevitementY < cS.myPos().y())
+    + " Enemy goal : " + String(cS.enemyGoalPos().norm() < goalMinDistance && cS.enemyGoalPos().norm() > 1)
+    + " My goal : " + String(cS.enemyGoalPos().norm() < myGoalMinDistance && cS.enemyGoalPos().norm() > 1)
+    + " Nearest wall : " + String(nearestWall.distance({0,0}) / 10.0 < criticalWallDistance));
+
 
     SerialDebug.println(distanceDevitementY);
     
@@ -121,7 +125,7 @@ bool goalIsDetected(FieldProperties fP, RobotState cS) {
 }
 
 bool targetInFrontOfRobotFromFront(FieldProperties fP, RobotState cS, Vector2 tL) {
-  float longRobot = (fP.robotRadius() * 1.5);
+  float longRobot = (fP.robotRadius() * 1);
   return tL.y() > longRobot;
 }
 
@@ -156,8 +160,10 @@ FutureAction refrainFromLeavingStrategy(FieldProperties fP, RobotState cS, doubl
   SerialDebug.println("orientationRadians: " + String(orientationRadians) + ", enemyGoalPos().norm: " + String(cS.enemyGoalPos().norm()));
 
   int distanceDevitementY;
-  if (abs(cS.myPos().x()) < 40) {
+  if (abs(cS.myPos().x()) < 30) {
     distanceDevitementY = 50;
+  } else if (abs(cS.myPos().x()) < 40 && abs(cS.myPos().x() >= 30)) {
+    distanceDevitementY = 35;
   } else {
     distanceDevitementY = criticalWallDistance;
   }
@@ -230,13 +236,13 @@ FutureAction goToBallAvoidingBallStrategyWithCam(FieldProperties fP, RobotState 
 
   } else if (cS.ballPos().x() < 0) {
     return FutureAction(
-        Vector2(2, -10),
+        Vector2(5, -10),
         speedmotors,
         0,
         false);  //@Gandalfph add orientation and celerity
   } else if (cS.ballPos().x() > 0) {
     return FutureAction(
-        Vector2(-2, -10),
+        Vector2(-5, -10),
         speedmotors,
         0,
         false);  //@Gandalfph add orientation and celerity
