@@ -21,7 +21,7 @@ FutureAction::FutureAction(
 
 ////////
 const int criticalWallDistance = 25;
-const int goalMinDistance = 85; // 85 pour SN10 et 95 pour SN9
+const int goalMinDistance = 90; // 85 pour SN10 et 95 pour SN9 OUTDATED VALUES
 const int myGoalMinDistance = 82; 
 const int speedmotors = 120;
 const FutureAction stopRobot = FutureAction(Vector2(0, 0), 0, 0, false);
@@ -121,7 +121,7 @@ bool goalIsDetected(FieldProperties fP, RobotState cS) {
 }
 
 bool targetInFrontOfRobotFromFront(FieldProperties fP, RobotState cS, Vector2 tL) {
-  float longRobot = (fP.robotRadius() * 1.5);
+  float longRobot = (fP.robotRadius() * 1); // margin
   return tL.y() > longRobot;
 }
 
